@@ -1,0 +1,87 @@
+{
+  "OrderHeader": {
+    "order_id": "12345680",
+    "order_type": "PM03",
+    "status": {
+      "system_status": ["REL", "PCNF"],
+      "user_status": ["IN_PROCESS"]
+    },
+    "description": "HVAC filter replacement and airflow measurement",
+    "priority": "1",
+    "functional_location": "PLANT/UTIL/HVAC2",
+    "equipment_id": "EQ-007512",
+    "planner_group": "300",
+    "created_by": "TECH003",
+    "created_on": "2025-11-17T07:10:00Z",
+    "last_changed": "2025-11-19T09:50:00Z",
+    "assigned_to": "TECH002",
+    "due_date": "2025-11-19T18:00:00Z"
+  },
+  "Operations": [
+    {
+      "operation_id": "0010",
+      "work_center": "HVAC",
+      "control_key": "PM03",
+      "description": "Remove old filters",
+      "status": "done",
+      "planned_duration_minutes": 20,
+      "actual_duration_minutes": 18,
+      "is_confirmed": true,
+      "started_at": "2025-11-19T09:00:00Z",
+      "completed_at": "2025-11-19T09:18:00Z"
+    },
+    {
+      "operation_id": "0020",
+      "work_center": "HVAC",
+      "control_key": "PM03",
+      "description": "Install new filters",
+      "status": "active",
+      "planned_duration_minutes": 25,
+      "actual_duration_minutes": 5,
+      "is_confirmed": false,
+      "started_at": "2025-11-19T09:25:00Z",
+      "completed_at": null
+    }
+  ],
+  "Components": [
+    {
+      "component_id": "90023111",
+      "description": "HVAC filter type X",
+      "quantity_required": 2,
+      "quantity_issued": 1,
+      "unit": "PC",
+      "storage_location": "0021"
+    }
+  ],
+  "TimeConfirmations": [
+    {
+      "confirmation_id": "C991",
+      "operation_id": "0010",
+      "technician_id": "TECH003",
+      "start_time": "2025-11-19T09:00:00Z",
+      "end_time": "2025-11-19T09:18:00Z",
+      "duration_minutes": 18,
+      "final_confirmation": true
+    },
+    {
+      "confirmation_id": "C992",
+      "operation_id": "0020",
+      "technician_id": "TECH003",
+      "start_time": "2025-11-19T09:25:00Z",
+      "end_time": "2025-11-19T09:30:00Z",
+      "duration_minutes": 5,
+      "final_confirmation": false
+    }
+  ],
+  "Notifications": [],
+  "SafetyChecklist": {
+    "ppe_worn": true,
+    "lockout_tagout": true,
+    "area_secured": true,
+    "comments": "Air ducts clean"
+  },
+  "Totals": {
+    "total_planned_time_minutes": 45,
+    "total_actual_time_minutes": 23
+  }
+}

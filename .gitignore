@@ -1,0 +1,61 @@
+# Secrets
+.env
+.env.*
+*.pem
+*.p12
+*.pfx
+*.mobileprovision
+*.cer
+
+# macOS
+.DS_Store
+._*
+
+# Node
+node_modules/
+dist/
+build/
+coverage/
+*.log
+logs/
+tmp/
+# Secrets
+.env
+.env.*
+*.pem
+*.p12
+*.pfx
+*.mobileprovision
+*.cer
+
+# macOS
+.DS_Store
+._*
+
+# Node
+node_modules/
+dist/
+build/
+coverage/
+*.log
+logs/
+tmp/
+.cache/
+
+# Recordings / uploads
+**/Recordings/
+**/recordings/
+**/uploads/
+**/*.wav
+**/*.mp3
+**/*.m4a
+**/*.aac
+**/*.ogg
+
+# Xcode
+DerivedData/
+build/
+*.xcresult
+xcuserdata/
+*.xcuserstate
+
