@@ -1,0 +1,25 @@
+{
+  "Notification": {
+    "notification_id": "N-20260105-124644-F37C",
+    "mode": "minimal",
+    "created_at": "2026-01-05T10:46:44.570Z",
+    "notification_type": "problem",
+    "short_text": "Laptop used for programming and communication",
+    "priority": "2",
+    "equipment_id": "",
+    "functional_location": "FL-100",
+    "plant": "1000",
+    "reported_by": "",
+    "attachments": [
+      {
+        "filename": "photo_1767610010.jpg",
+        "path": "stored_notifications/photos/photo_1767610010.jpg",
+        "mimeType": "image/jpeg",
+        "sizeBytes": 286322,
+        "note": "Camera/gallery capture",
+        "source": "manual",
+        "addedAt": "2026-01-05T10:46:51.016Z"
+      }
+    ]
+  }
+}

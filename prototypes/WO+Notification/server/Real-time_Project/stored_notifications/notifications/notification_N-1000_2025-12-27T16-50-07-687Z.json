@@ -1,0 +1,102 @@
+{
+  "storedAt": "2025-12-27T16:50:07.687Z",
+  "notificationId": "N-1000",
+  "notification": {
+    "notificationId": "N-1000",
+    "createdAt": "2025-12-27T16:50:07.685Z",
+    "mode": "minimal",
+    "header": {
+      "notificationType": "M1",
+      "shortText": "Abnormal motor sound",
+      "priority": null,
+      "plant": null,
+      "reportedBy": null,
+      "technicalObject": {
+        "equipmentID": "EQ-1001"
+      }
+    },
+    "attachments": [
+      {
+        "id": "ATT-770238ce-1a2d-400f-844d-b1073c6bf602",
+        "filename": "photo_1766854072_669bba86-047d-4339-88e9-2f34f1cfa28e.jpg",
+        "mimeType": "image/jpeg",
+        "sizeBytes": 291470,
+        "serverPath": "stored_notifications/photos/photo_1766854072_669bba86-047d-4339-88e9-2f34f1cfa28e.jpg",
+        "note": "Camera/gallery capture",
+        "source": "manual",
+        "createdAt": "2025-12-27T16:47:52.821Z"
+      },
+      {
+        "id": "ATT-f30dee89-5945-45d3-bfde-9f289f921416",
+        "filename": "photo_1766854089_11169726-b4bc-4719-a250-c7f07721278a.jpg",
+        "mimeType": "image/jpeg",
+        "sizeBytes": 246331,
+        "serverPath": "stored_notifications/photos/photo_1766854089_11169726-b4bc-4719-a250-c7f07721278a.jpg",
+        "note": "Camera/gallery capture",
+        "source": "manual",
+        "createdAt": "2025-12-27T16:48:09.454Z"
+      },
+      {
+        "id": "ATT-58cba4cd-0a22-4eae-94a0-72448c773b2f",
+        "filename": "photo_1766854182_bc3e2e9b-961f-4794-baa5-5ef7a04cb8a4.jpg",
+        "mimeType": "image/jpeg",
+        "sizeBytes": 291126,
+        "serverPath": "stored_notifications/photos/photo_1766854182_bc3e2e9b-961f-4794-baa5-5ef7a04cb8a4.jpg",
+        "note": "Camera/gallery capture",
+        "source": "manual",
+        "createdAt": "2025-12-27T16:49:42.913Z"
+      }
+    ]
+  },
+  "draft": {
+    "id": "DRAFT-39bd0dba-4acf-44f3-8db6-c252d268cd00",
+    "createdAt": "2025-12-27T16:47:52.821Z",
+    "status": "finalized",
+    "notificationId": "N-1000",
+    "notificationType": "M1",
+    "shortText": "Abnormal motor sound",
+    "priority": null,
+    "equipmentID": "EQ-1001",
+    "functionalLocation": null,
+    "plant": null,
+    "reportedBy": null,
+    "attachments": [
+      {
+        "id": "ATT-770238ce-1a2d-400f-844d-b1073c6bf602",
+        "createdAt": "2025-12-27T16:47:52.821Z",
+        "filename": "photo_1766854072_669bba86-047d-4339-88e9-2f34f1cfa28e.jpg",
+        "mimeType": "image/jpeg",
+        "sizeBytes": 291470,
+        "serverPath": "stored_notifications/photos/photo_1766854072_669bba86-047d-4339-88e9-2f34f1cfa28e.jpg",
+        "note": "Camera/gallery capture",
+        "clientLocalId": "B376CA53-FEFC-412F-B8FC-4253391FE75C",
+        "requestId": null,
+        "source": "manual"
+      },
+      {
+        "id": "ATT-f30dee89-5945-45d3-bfde-9f289f921416",
+        "createdAt": "2025-12-27T16:48:09.454Z",
+        "filename": "photo_1766854089_11169726-b4bc-4719-a250-c7f07721278a.jpg",
+        "mimeType": "image/jpeg",
+        "sizeBytes": 246331,
+        "serverPath": "stored_notifications/photos/photo_1766854089_11169726-b4bc-4719-a250-c7f07721278a.jpg",
+        "note": "Camera/gallery capture",
+        "clientLocalId": "965A330C-508C-4E37-B565-9478C940ACC9",
+        "requestId": null,
+        "source": "manual"
+      },
+      {
+        "id": "ATT-58cba4cd-0a22-4eae-94a0-72448c773b2f",
+        "createdAt": "2025-12-27T16:49:42.913Z",
+        "filename": "photo_1766854182_bc3e2e9b-961f-4794-baa5-5ef7a04cb8a4.jpg",
+        "mimeType": "image/jpeg",
+        "sizeBytes": 291126,
+        "serverPath": "stored_notifications/photos/photo_1766854182_bc3e2e9b-961f-4794-baa5-5ef7a04cb8a4.jpg",
+        "note": "Camera/gallery capture",
+        "clientLocalId": "5DB44626-3488-4291-B81B-30FCD49FFA32",
+        "requestId": null,
+        "source": "manual"
+      }
+    ]
+  }
+}

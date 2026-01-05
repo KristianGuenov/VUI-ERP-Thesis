@@ -1,0 +1,69 @@
+{
+  "OrderHeader": {
+    "order_id": "WO-2002",
+    "order_type": "PM02",
+    "status": {
+      "system_status": ["CRTD"],
+      "user_status": ["PLANNED"]
+    },
+    "description": "Routine electrical inspection of conveyor",
+    "priority": "3",
+    "functional_location": "PLANT/AREA/CONV1",
+    "equipment_id": "EQ-004211",
+    "planner_group": "200",
+    "created_by": "TECH002",
+    "created_on": "2025-11-18T08:20:00Z",
+    "last_changed": "2025-11-18T08:20:00Z",
+    "assigned_to": "TECH001",
+    "due_date": "2025-11-21T12:00:00Z"
+  },
+  "Operations": [
+    {
+      "operation_id": "0010",
+      "work_center": "ELEC",
+      "control_key": "PM02",
+      "description": "Visual inspection of wiring",
+      "status": "pending",
+      "planned_duration_minutes": 45,
+      "actual_duration_minutes": 0,
+      "is_confirmed": false,
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "operation_id": "0020",
+      "work_center": "ELEC",
+      "control_key": "PM02",
+      "description": "Measure line voltage and grounding",
+      "status": "pending",
+      "planned_duration_minutes": 20,
+      "actual_duration_minutes": 0,
+      "is_confirmed": false,
+      "started_at": null,
+      "completed_at": null
+    }
+  ],
+  "Components": [],
+  "TimeConfirmations": [],
+  "Notifications": [
+    {
+      "notification_id": "1000000890",
+      "type": "M3",
+      "description": "Occasional voltage spikes reported",
+      "created_by": "TECH002",
+      "created_on": "2025-11-18T08:30:00Z",
+      "priority": "3",
+      "attachments": []
+    }
+  ],
+  "SafetyChecklist": {
+    "ppe_worn": false,
+    "lockout_tagout": false,
+    "area_secured": false,
+    "comments": ""
+  },
+  "Totals": {
+    "total_planned_time_minutes": 65,
+    "total_actual_time_minutes": 0
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "Notification": {
+    "notification_id": "N-20260105-113712-F191",
+    "mode": "minimal",
+    "created_at": "2026-01-05T09:37:12.117Z",
+    "notification_type": "problem",
+    "short_text": "Big problem",
+    "priority": "2",
+    "equipment_id": "",
+    "functional_location": "FL-100",
+    "plant": "1000",
+    "reported_by": "",
+    "attachments": []
+  }
+}
