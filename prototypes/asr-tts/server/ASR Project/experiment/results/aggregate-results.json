@@ -1,0 +1,30 @@
+[
+  {
+    "condition": "C1",
+    "prototype": "asr_tts",
+    "environment": "quiet",
+    "totalTrials": 30,
+    "taskSuccessRate": 0.8333333333333334,
+    "criticalExecutionErrorRate": 0.13333333333333333,
+    "meanEntityAccuracy": 0.9333333333333333,
+    "medianLatencyMs": 8334,
+    "minLatencyMs": 2293,
+    "maxLatencyMs": 97377,
+    "failureTimeoutRate": 0.03333333333333333,
+    "confirmationComplianceRate": 0.9444444444444444
+  },
+  {
+    "condition": "C2",
+    "prototype": "asr_tts",
+    "environment": "industrial_noise",
+    "totalTrials": 30,
+    "taskSuccessRate": 0.7666666666666667,
+    "criticalExecutionErrorRate": 0.06666666666666667,
+    "meanEntityAccuracy": 0.8,
+    "medianLatencyMs": 13895,
+    "minLatencyMs": 2779,
+    "maxLatencyMs": 104997,
+    "failureTimeoutRate": 0.03333333333333333,
+    "confirmationComplianceRate": 0.7777777777777778
+  }
+]

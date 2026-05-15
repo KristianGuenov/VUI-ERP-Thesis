@@ -42,7 +42,7 @@ struct ContentView: View {
     @State private var chatHistory: [ChatMessage] = []
 
     private let recorder = AudioRecorder()
-    @State private var serverURLString: String = "http://10.57.0.101:3000"
+    @State private var serverURLString: String = "http://10.4.4.133:3000"
 
     private let historyKey = "VoiceWOChatHistory"
 

@@ -1,5 +1,5 @@
 // ------------------------------
-// index.js (Work Orders + Notifications + Realtime + SSE + QR + Photos + Vision)
+// index.js (Work Orders + Notifications + Realtime + SSE + QR + Photos + Vision + Confirmations)
 // ------------------------------
 
 import express from "express";
@@ -15,6 +15,10 @@ import { fileURLToPath } from "url";
 import { workOrderTools } from "./workOrderTools.js";
 import { executeWorkOrderFunction } from "./executeWorkOrderFunction.js";
 import { getWorkOrder, resetWorkOrders } from "./workOrders.js";
+
+// NEW: confirmation gate + router
+import { NotificationConfirmationGate } from "./notifications/notificationConfirmations.js";
+import { createNotificationConfirmationRouter } from "./notifications/notificationConfirmationRoutes.js";
 
 events.EventEmitter.defaultMaxListeners = 25;
 
@@ -52,6 +56,11 @@ function broadcastToClients(obj) {
   const text = JSON.stringify(obj);
   for (const res of clients) res.write(`data: ${text}\n\n`);
 }
+
+// NEW: shared emitter for confirmation modules
+const emit = (type, payload) => {
+  broadcastToClients({ type, ...(payload || {}) });
+};
 
 /* -------------------------------------------------------------------------- */
 /*                         Work order helper / validation                      */
@@ -102,7 +111,7 @@ function ensureDraft(mode = NotificationModes.minimal) {
       plant: "",
       reportedBy: "",
       photos: [],
-      // New: keep last vision insights on server (optional, but handy for debugging)
+      // keep last vision insights on server (optional)
       vision: [],
     };
   }
@@ -136,7 +145,14 @@ function broadcastNotificationState(actionSummary = "") {
 function broadcastNotificationCreated(actionSummary, notificationJson) {
   const mode = notificationDraft?.mode ?? NotificationModes.minimal;
   const missingRequired = computeMissingRequired(notificationDraft);
-  broadcastToClients({ type: "notification.created", mode, missingRequired, actionSummary, draft: notificationDraft, notificationJson });
+  broadcastToClients({
+    type: "notification.created",
+    mode,
+    missingRequired,
+    actionSummary,
+    draft: notificationDraft,
+    notificationJson,
+  });
 }
 
 function normalizeFieldName(field) {
@@ -188,18 +204,131 @@ function setDraftFields(draft, fieldsObj) {
   return applied;
 }
 
-function applyFieldUpdateFromBody(draft, body) {
-  if (!body || typeof body !== "object") return {};
-  if (body.fields && typeof body.fields === "object") return setDraftFields(draft, body.fields);
-  if (typeof body.field === "string") {
-    const k = normalizeFieldName(body.field);
-    if (!NOTIF_ALLOWED_FIELDS.has(k)) return {};
-    const v = sanitizeFieldValue(k, body.value);
-    draft[k] = v;
-    return { [k]: v };
+/* -------------------------------------------------------------------------- */
+/*                     Finalize + Confirmation Store Adapter                    */
+/* -------------------------------------------------------------------------- */
+
+function finalizeNotificationAndPersist() {
+  const draft = ensureDraft(notificationDraft?.mode ?? NotificationModes.minimal);
+  const missing = computeMissingRequired(draft);
+
+  if (missing.length > 0) {
+    const action_summary = `Cannot finalize: missing required fields: ${missing.join(", ")}.`;
+    broadcastNotificationState(action_summary);
+    return { ok: false, mutated: false, action_summary, missingRequired: missing, draft };
   }
-  return {};
+
+  const notificationJson = {
+    Notification: {
+      notification_id: draft.notificationId,
+      mode: draft.mode,
+      created_at: draft.createdAt,
+      notification_type: draft.notificationType,
+      short_text: draft.shortText,
+      priority: draft.priority,
+      equipment_id: draft.equipmentID,
+      functional_location: draft.functionalLocation,
+      plant: draft.plant,
+      reported_by: draft.reportedBy,
+      attachments: (draft.photos || []).map((p) => ({
+        filename: p.filename,
+        path: p.serverPath,
+        mimeType: p.mimeType,
+        sizeBytes: p.sizeBytes,
+        note: p.note,
+        source: p.source,
+        addedAt: p.addedAt,
+      })),
+    },
+  };
+
+  const outPath = path.join(STORE_NOTIFS, `${draft.notificationId}.json`);
+  fs.writeFileSync(outPath, JSON.stringify(notificationJson, null, 2), "utf8");
+
+  const action_summary = `I confirm I have finalized the notification ${draft.notificationId}.`;
+  broadcastNotificationCreated(action_summary, notificationJson);
+
+  return {
+    ok: true,
+    mutated: true,
+    action_summary,
+    notificationJson,
+    draft,
+    persistedPath: `stored_notifications/notifications/${draft.notificationId}.json`,
+  };
 }
+
+const notificationStore = {
+  getDraft() {
+    const d = ensureDraft(notificationDraft?.mode ?? NotificationModes.minimal);
+    return { ...d, missingRequired: computeMissingRequired(d) };
+  },
+
+  normalizeField(field) {
+    return normalizeFieldName(field);
+  },
+
+  isAllowedField(field) {
+    return NOTIF_ALLOWED_FIELDS.has(field);
+  },
+
+  applyField(field, value) {
+    const d = ensureDraft(notificationDraft?.mode ?? NotificationModes.minimal);
+    const f = normalizeFieldName(field);
+    if (!NOTIF_ALLOWED_FIELDS.has(f)) return;
+    d[f] = sanitizeFieldValue(f, value);
+  },
+
+  clearField(field) {
+    const d = ensureDraft(notificationDraft?.mode ?? NotificationModes.minimal);
+    const f = normalizeFieldName(field);
+    if (!NOTIF_ALLOWED_FIELDS.has(f)) return;
+    d[f] = "";
+  },
+
+  finalizeAndPersist() {
+    return finalizeNotificationAndPersist();
+  },
+
+  emitState(actionSummary = "") {
+    broadcastNotificationState(actionSummary);
+  },
+};
+
+const notificationGate = new NotificationConfirmationGate({
+  emit,
+  getDraft: () => notificationStore.getDraft(),
+  applyField: (field, value) => notificationStore.applyField(field, value),
+  clearField: (field) => notificationStore.clearField(field),
+  finalize: () => notificationStore.finalizeAndPersist(),
+});
+
+// Mount confirmation REST router first (so /notification/set_field etc. exist)
+const notificationRouter = createNotificationConfirmationRouter({
+  notificationStore,
+  emit,
+  gate: notificationGate,
+});
+
+app.use("/notification", notificationRouter);
+
+// Backwards-compatible aliases (safe for older clients)
+app.post("/notification/setField", (req, res, next) => {
+  req.url = "/set_field";
+  notificationRouter.handle(req, res, next);
+});
+
+// IMPORTANT: /notification/finalize now triggers confirmation gate (not forced finalize)
+app.post("/notification/finalize", (req, res, next) => {
+  req.url = "/finalize_gate";
+  notificationRouter.handle(req, res, next);
+});
+
+// Optional debug escape hatch (force finalize, no UI confirmation)
+app.post("/notification/finalize_force", (req, res) => {
+  const out = finalizeNotificationAndPersist();
+  res.status(out.ok ? 200 : 400).json(out);
+});
 
 /* -------------------------------------------------------------------------- */
 /*                                   QR resolve                               */
@@ -263,23 +392,12 @@ function resolveQrToFields(raw) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                           Vision fallback (NEW)                             */
+/*                           Vision fallback                                  */
 /* -------------------------------------------------------------------------- */
 
 const VISION_AUTO_ANALYZE = String(process.env.VISION_AUTO_ANALYZE ?? "1") === "1";
 const OPENAI_VISION_MODEL = process.env.OPENAI_VISION_MODEL || "gpt-4.1-mini";
 
-/**
- * Calls OpenAI Responses API to analyze the image and return structured JSON:
- * {
- *   ok: true,
- *   summary: "...",
- *   confidence: 0.0..1.0,
- *   labels: ["pump","motor",...],
- *   suggestedFields: { equipmentID, functionalLocation, plant, shortText, notificationType, priority },
- *   evidence: { ...short evidence notes... }
- * }
- */
 async function visionAnalyzeImage({ base64, mimeType }) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -349,7 +467,6 @@ Rules:
 
   const j = await resp.json();
 
-  // Extract text robustly
   let text = "";
   if (typeof j.output_text === "string") text = j.output_text;
   if (!text && Array.isArray(j.output)) {
@@ -364,7 +481,6 @@ Rules:
     text = chunks.join("\n");
   }
 
-  // Pull first JSON object from text if needed
   const trimmed = String(text || "").trim();
   let parsed = null;
 
@@ -383,7 +499,6 @@ Rules:
     return { ok: false, error: "vision_parse_failed", raw: trimmed.slice(0, 1000) };
   }
 
-  // Normalize output
   const out = {
     ok: true,
     summary: String(parsed.summary ?? ""),
@@ -406,9 +521,6 @@ Rules:
   return out;
 }
 
-/**
- * Apply vision suggested fields only if draft currently has those fields empty.
- */
 function applyVisionSuggestionsSafely(draft, suggestedFields) {
   const applied = {};
   const hasText = (v) => typeof v === "string" && v.trim().length > 0;
@@ -420,7 +532,6 @@ function applyVisionSuggestionsSafely(draft, suggestedFields) {
     shortText: suggestedFields?.shortText ?? "",
   };
 
-  // Only apply if the draft is empty for that field
   if (!hasText(draft.equipmentID) && hasText(candidates.equipmentID)) {
     draft.equipmentID = candidates.equipmentID.trim();
     applied.equipmentID = draft.equipmentID;
@@ -434,7 +545,6 @@ function applyVisionSuggestionsSafely(draft, suggestedFields) {
     applied.plant = draft.plant;
   }
   if (!hasText(draft.shortText) && hasText(candidates.shortText)) {
-    // keep as-is (do not trim aggressively)
     draft.shortText = candidates.shortText;
     applied.shortText = draft.shortText;
   }
@@ -515,19 +625,108 @@ async function runVisionForPhotoAndBroadcast({ draft, photoEntry, source }) {
 /* -------------------------------------------------------------------------- */
 
 const notificationTools = [
-  { type: "function", name: "notification_start", description: "Start a new notification draft.", parameters: { type: "object", properties: { mode: { type: "string", enum: ["minimal", "full"] } }, required: ["mode"], additionalProperties: false } },
-  { type: "function", name: "notification_set_mode", description: "Switch mode minimal/full.", parameters: { type: "object", properties: { mode: { type: "string", enum: ["minimal", "full"] } }, required: ["mode"], additionalProperties: false } },
-  { type: "function", name: "notification_set_field", description: "Set a notification draft field.", parameters: { type: "object", properties: { field: { type: "string" }, value: { type: "string" } }, required: ["field", "value"], additionalProperties: false } },
-  { type: "function", name: "notification_clear_field", description: "Clear a notification draft field.", parameters: { type: "object", properties: { field: { type: "string" } }, required: ["field"], additionalProperties: false } },
+  {
+    type: "function",
+    name: "notification_start",
+    description: "Start a new notification draft.",
+    parameters: {
+      type: "object",
+      properties: { mode: { type: "string", enum: ["minimal", "full"] } },
+      required: ["mode"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "notification_set_mode",
+    description: "Switch mode minimal/full.",
+    parameters: {
+      type: "object",
+      properties: { mode: { type: "string", enum: ["minimal", "full"] } },
+      required: ["mode"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "notification_set_field",
+    description: "Set a notification draft field.",
+    parameters: {
+      type: "object",
+      properties: { field: { type: "string" }, value: { type: "string" } },
+      required: ["field", "value"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "notification_clear_field",
+    description: "Clear a notification draft field.",
+    parameters: {
+      type: "object",
+      properties: { field: { type: "string" } },
+      required: ["field"],
+      additionalProperties: false,
+    },
+  },
 
   // Device action requests
-  { type: "function", name: "notification_request_photo_capture", description: "Ask iOS client to open camera.", parameters: { type: "object", properties: { reason: { type: "string" } }, required: [], additionalProperties: false } },
-  { type: "function", name: "notification_request_qr_scan", description: "Ask iOS client to open QR scanner.", parameters: { type: "object", properties: { reason: { type: "string" } }, required: [], additionalProperties: false } },
+  {
+    type: "function",
+    name: "notification_request_photo_capture",
+    description: "Ask iOS client to open camera.",
+    parameters: { type: "object", properties: { reason: { type: "string" } }, required: [], additionalProperties: false },
+  },
+  {
+    type: "function",
+    name: "notification_request_qr_scan",
+    description: "Ask iOS client to open QR scanner.",
+    parameters: { type: "object", properties: { reason: { type: "string" } }, required: [], additionalProperties: false },
+  },
 
-  // NEW: on-demand vision analysis
-  { type: "function", name: "notification_analyze_last_photo", description: "Run vision fallback analysis on the most recent attached photo.", parameters: { type: "object", properties: {}, required: [], additionalProperties: false } },
+  // On-demand vision analysis
+  {
+    type: "function",
+    name: "notification_analyze_last_photo",
+    description: "Run vision fallback analysis on the most recent attached photo.",
+    parameters: { type: "object", properties: {}, required: [], additionalProperties: false },
+  },
 
-  { type: "function", name: "notification_finalize", description: "Finalize notification and persist JSON.", parameters: { type: "object", properties: {}, required: [], additionalProperties: false } },
+  // Finalization (now gated)
+  {
+    type: "function",
+    name: "notification_finalize",
+    description: "Request final confirmation before finalizing and persisting notification JSON.",
+    parameters: { type: "object", properties: {}, required: [], additionalProperties: false },
+  },
+
+  // NEW: confirmations
+  {
+    type: "function",
+    name: "notification_confirm_field",
+    description: "Confirm or reject a critical field update.",
+    parameters: {
+      type: "object",
+      properties: {
+        requestId: { type: "string" },
+        accept: { type: "boolean" },
+        correctedValue: { type: "string" },
+      },
+      required: ["requestId", "accept"],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: "function",
+    name: "notification_confirm_finalize",
+    description: "Confirm or cancel notification finalization.",
+    parameters: {
+      type: "object",
+      properties: { requestId: { type: "string" }, accept: { type: "boolean" } },
+      required: ["requestId", "accept"],
+      additionalProperties: false,
+    },
+  },
 ];
 
 async function executeNotificationFunction(name, args) {
@@ -535,6 +734,7 @@ async function executeNotificationFunction(name, args) {
     if (name === "notification_start") {
       const mode = args?.mode === "full" ? NotificationModes.full : NotificationModes.minimal;
       notificationDraft = null;
+      notificationGate.reset();
       ensureDraft(mode);
       const action_summary = `I confirm I have started a new notification draft in ${mode} mode.`;
       broadcastNotificationState(action_summary);
@@ -552,30 +752,50 @@ async function executeNotificationFunction(name, args) {
     if (name === "notification_set_field") {
       const draft = ensureDraft(notificationDraft?.mode ?? NotificationModes.minimal);
       const field = normalizeFieldName(args?.field);
+
       if (!NOTIF_ALLOWED_FIELDS.has(field)) {
         const action_summary = `Cannot set field "${field}" because it is not supported.`;
         broadcastNotificationState(action_summary);
         return { ok: false, mutated: false, action_summary, draft };
       }
+
       const value = sanitizeFieldValue(field, args?.value);
-      draft[field] = value;
-      const action_summary = `I confirm I have set ${field}.`;
+
+      const out = notificationGate.proposeField({ field, value, source: "voice" });
+
+      const action_summary = out.needsConfirmation
+        ? `I heard ${field}. Please confirm in the app.`
+        : `I confirm I have set ${field}.`;
+
       broadcastNotificationState(action_summary);
-      return { ok: true, mutated: true, action_summary, draft, missingRequired: computeMissingRequired(draft) };
+
+      return {
+        ok: true,
+        mutated: !!out.mutated,
+        needsConfirmation: !!out.needsConfirmation,
+        requestId: out.requestId || "",
+        action_summary,
+        draft: notificationDraft,
+        missingRequired: computeMissingRequired(notificationDraft),
+      };
     }
 
     if (name === "notification_clear_field") {
       const draft = ensureDraft(notificationDraft?.mode ?? NotificationModes.minimal);
       const field = normalizeFieldName(args?.field);
+
       if (!NOTIF_ALLOWED_FIELDS.has(field)) {
         const action_summary = `Cannot clear field "${field}" because it is not supported.`;
         broadcastNotificationState(action_summary);
         return { ok: false, mutated: false, action_summary, draft };
       }
-      draft[field] = "";
+
+      notificationStore.clearField(field);
+
       const action_summary = `I confirm I have cleared ${field}.`;
       broadcastNotificationState(action_summary);
-      return { ok: true, mutated: true, action_summary, draft, missingRequired: computeMissingRequired(draft) };
+
+      return { ok: true, mutated: true, action_summary, draft: notificationDraft, missingRequired: computeMissingRequired(notificationDraft) };
     }
 
     if (name === "notification_request_photo_capture") {
@@ -594,7 +814,6 @@ async function executeNotificationFunction(name, args) {
       return { ok: true, mutated: false, action_summary: "QR scan requested.", requestId, reason };
     }
 
-    // NEW: on-demand vision analysis
     if (name === "notification_analyze_last_photo") {
       const draft = ensureDraft(notificationDraft?.mode ?? NotificationModes.minimal);
       const last = Array.isArray(draft.photos) ? draft.photos[draft.photos.length - 1] : null;
@@ -607,57 +826,50 @@ async function executeNotificationFunction(name, args) {
       await runVisionForPhotoAndBroadcast({ draft, photoEntry: last, source: "tool" });
 
       const action_summary = `Vision analysis started for ${last.filename}.`;
-      // State broadcast happens inside runVisionForPhotoAndBroadcast as well
       return { ok: true, mutated: false, action_summary, filename: last.filename };
     }
 
     if (name === "notification_finalize") {
       const draft = ensureDraft(notificationDraft?.mode ?? NotificationModes.minimal);
       const missing = computeMissingRequired(draft);
+
       if (missing.length > 0) {
         const action_summary = `Cannot finalize: missing required fields: ${missing.join(", ")}.`;
         broadcastNotificationState(action_summary);
         return { ok: false, mutated: false, action_summary, missingRequired: missing, draft };
       }
 
-      const notificationJson = {
-        Notification: {
-          notification_id: draft.notificationId,
-          mode: draft.mode,
-          created_at: draft.createdAt,
-          notification_type: draft.notificationType,
-          short_text: draft.shortText,
-          priority: draft.priority,
-          equipment_id: draft.equipmentID,
-          functional_location: draft.functionalLocation,
-          plant: draft.plant,
-          reported_by: draft.reportedBy,
-          attachments: draft.photos.map((p) => ({
-            filename: p.filename,
-            path: p.serverPath,
-            mimeType: p.mimeType,
-            sizeBytes: p.sizeBytes,
-            note: p.note,
-            source: p.source,
-            addedAt: p.addedAt,
-          })),
-        },
-      };
+      const out = notificationGate.requestFinalize({ source: "voice" });
 
-      const outPath = path.join(STORE_NOTIFS, `${draft.notificationId}.json`);
-      fs.writeFileSync(outPath, JSON.stringify(notificationJson, null, 2), "utf8");
+      const action_summary = `Final confirmation requested. Please review and confirm in the app.`;
+      broadcastNotificationState(action_summary);
 
-      const action_summary = `I confirm I have finalized the notification ${draft.notificationId}.`;
-      broadcastNotificationCreated(action_summary, notificationJson);
+      return { ok: true, mutated: false, needsConfirmation: true, requestId: out.requestId, action_summary, draft };
+    }
 
-      return {
-        ok: true,
-        mutated: true,
-        action_summary,
-        notificationJson,
-        draft,
-        persistedPath: `stored_notifications/notifications/${draft.notificationId}.json`,
-      };
+    if (name === "notification_confirm_field") {
+      const out = notificationGate.confirmField({
+        requestId: String(args?.requestId ?? ""),
+        accept: !!args?.accept,
+        correctedValue: args?.correctedValue,
+      });
+
+      const action_summary = out.ok ? "Field confirmation applied." : `Field confirmation failed: ${out.error || "unknown"}`;
+      broadcastNotificationState(action_summary);
+
+      return { ...out, action_summary, draft: notificationDraft, missingRequired: computeMissingRequired(notificationDraft) };
+    }
+
+    if (name === "notification_confirm_finalize") {
+      const out = notificationGate.confirmFinalize({
+        requestId: String(args?.requestId ?? ""),
+        accept: !!args?.accept,
+      });
+
+      const action_summary = out.ok ? out.action_summary || "Notification finalized." : `Finalize failed: ${out.error || "unknown"}`;
+      broadcastNotificationState(action_summary);
+
+      return out;
     }
 
     return { ok: false, mutated: false, action_summary: `Unknown notification tool: ${name}` };
@@ -748,8 +960,10 @@ DEVICE ACTIONS
 - If user asks to take a photo now: call notification_request_photo_capture.
 - Do not say you cannot access the camera/QR scanner.
 
-FINALIZATION
-- You MUST NOT claim a notification is finalized unless notification_finalize returned ok=true.
+CONFIRMATIONS
+- Some critical numeric fields (equipmentID, functionalLocation, plant, priority) may require confirmation.
+- If a tool result returns needsConfirmation=true, tell the user to confirm in the app and do NOT assume the value is applied.
+- Do NOT claim the notification is finalized unless finalization actually persisted (notification_confirm_finalize accepted and returned ok=true mutated=true).
             `,
           },
         })
@@ -842,7 +1056,7 @@ FINALIZATION
             response: {
               modalities: ["text", "audio"],
               output_audio_format: "pcm16",
-              instructions: `Tool result JSON:\n${JSON.stringify(nres)}\n\nRules:\n- If ok=false: explain and ask for next required field.\n- If ok=true: start with action_summary.\n- If missingRequired non-empty: ask for ONE missing field.\n- If tool requested camera/QR: tell the user the UI is opening.`,
+              instructions: `Tool result JSON:\n${JSON.stringify(nres)}\n\nRules:\n- If ok=false: explain and ask for next required field.\n- If ok=true: start with action_summary.\n- If needsConfirmation=true: instruct user to confirm in the app; do not assume the value is applied.\n- If missingRequired non-empty: ask for ONE missing field.\n- If tool requested camera/QR: tell the user the UI is opening.`,
             },
           })
         );
@@ -902,42 +1116,10 @@ app.post("/respond", (req, res) => {
 app.post("/notification/start", (req, res) => {
   const mode = req.body?.mode === "full" ? NotificationModes.full : NotificationModes.minimal;
   notificationDraft = null;
+  notificationGate.reset();
   ensureDraft(mode);
   broadcastNotificationState(`Started notification draft (${mode}).`);
   res.json({ ok: true, draft: notificationDraft, missingRequired: computeMissingRequired(notificationDraft) });
-});
-
-app.post("/notification/set_field", (req, res) => {
-  const draft = ensureDraft(notificationDraft?.mode ?? NotificationModes.minimal);
-  const applied = applyFieldUpdateFromBody(draft, req.body);
-
-  if (Object.keys(applied).length === 0) return res.status(400).json({ ok: false, error: "no_supported_fields", draft });
-
-  broadcastNotificationState(`Updated: ${Object.keys(applied).join(", ")}`);
-  res.json({ ok: true, draft, applied, missingRequired: computeMissingRequired(draft) });
-});
-
-app.post("/notification/set_fields", (req, res) => {
-  const draft = ensureDraft(notificationDraft?.mode ?? NotificationModes.minimal);
-  const applied = applyFieldUpdateFromBody(draft, req.body);
-
-  if (Object.keys(applied).length === 0) return res.status(400).json({ ok: false, error: "no_supported_fields", draft });
-
-  broadcastNotificationState(`Updated: ${Object.keys(applied).join(", ")}`);
-  res.json({ ok: true, draft, applied, missingRequired: computeMissingRequired(draft) });
-});
-
-// Aliases for client safety
-app.post("/notification/setField", (req, res) => app._router.handle(req, res, () => {}, "/notification/set_field"));
-
-app.post("/notification/clear_field", (req, res) => {
-  const draft = ensureDraft(notificationDraft?.mode ?? NotificationModes.minimal);
-  const field = normalizeFieldName(req.body?.field);
-  if (!NOTIF_ALLOWED_FIELDS.has(field)) return res.status(400).json({ ok: false, error: "unsupported_field", field });
-
-  draft[field] = "";
-  broadcastNotificationState(`Cleared ${field}.`);
-  res.json({ ok: true, draft, missingRequired: computeMissingRequired(draft) });
 });
 
 app.post("/notification/apply_qr", (req, res) => {
@@ -950,9 +1132,21 @@ app.post("/notification/apply_qr", (req, res) => {
     return res.status(400).json({ ok: false, error: "qr_unrecognized", resolved, draft });
   }
 
-  const applied = setDraftFields(draft, resolved.fields);
-  broadcastNotificationState(`Applied QR: ${Object.keys(applied).join(", ")}`);
-  res.json({ ok: true, draft, applied, resolved, missingRequired: computeMissingRequired(draft) });
+  // Apply via gate so critical overwrites can be confirmed
+  let needsConfirmation = false;
+  const results = [];
+
+  for (const [k, v] of Object.entries(resolved.fields)) {
+    const field = normalizeFieldName(k);
+    if (!NOTIF_ALLOWED_FIELDS.has(field)) continue;
+
+    const r = notificationGate.proposeField({ field, value: v, source: "qr" });
+    results.push({ field, ...r });
+    if (r.needsConfirmation) needsConfirmation = true;
+  }
+
+  broadcastNotificationState(needsConfirmation ? "QR applied; some fields need confirmation." : "Applied QR fields.");
+  res.json({ ok: true, draft, resolved, results, needsConfirmation, missingRequired: computeMissingRequired(draft) });
 });
 
 // Photo upload
@@ -992,7 +1186,7 @@ function attachPhotoHandler(req, res) {
 
     broadcastNotificationState(`Attached photo ${filename}.`);
 
-    // NEW: auto vision analysis (non-blocking for HTTP response)
+    // Auto vision analysis (non-blocking)
     if (VISION_AUTO_ANALYZE) {
       setTimeout(() => {
         runVisionForPhotoAndBroadcast({ draft, photoEntry: entry, source: "auto" });
@@ -1010,7 +1204,40 @@ app.post("/notification/upload_photo", attachPhotoHandler);
 app.post("/notification/uploadPhoto", attachPhotoHandler);
 app.post("/notification/attachPhoto", attachPhotoHandler);
 
-// Optional REST endpoint to manually trigger vision on last photo (UI button could call this later)
+// NEW: remove photo (your iOS calls this)
+app.post("/notification/remove_photo", (req, res) => {
+  try {
+    const draft = ensureDraft(notificationDraft?.mode ?? NotificationModes.minimal);
+    const filename = String(req.body?.filename ?? "").trim();
+    if (!filename) return res.status(400).json({ ok: false, error: "missing_filename" });
+
+    draft.photos = Array.isArray(draft.photos) ? draft.photos : [];
+    const before = draft.photos.length;
+
+    const entry = draft.photos.find((p) => p.filename === filename);
+    draft.photos = draft.photos.filter((p) => p.filename !== filename);
+
+    // Remove from disk best-effort
+    if (entry?.serverPath) {
+      const abs = path.join(__dirname, entry.serverPath);
+      try {
+        if (fs.existsSync(abs)) fs.unlinkSync(abs);
+      } catch {}
+    } else {
+      const abs2 = path.join(STORE_PHOTOS, filename);
+      try {
+        if (fs.existsSync(abs2)) fs.unlinkSync(abs2);
+      } catch {}
+    }
+
+    broadcastNotificationState(`Removed photo ${filename}.`);
+    res.json({ ok: true, removed: before !== draft.photos.length, draft, missingRequired: computeMissingRequired(draft) });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: "remove_failed", detail: err?.message ?? String(err) });
+  }
+});
+
+// Optional REST endpoint to manually trigger vision on last photo
 app.post("/notification/analyze_last_photo", async (req, res) => {
   const draft = ensureDraft(notificationDraft?.mode ?? NotificationModes.minimal);
   const last = Array.isArray(draft.photos) ? draft.photos[draft.photos.length - 1] : null;
@@ -1018,11 +1245,6 @@ app.post("/notification/analyze_last_photo", async (req, res) => {
 
   await runVisionForPhotoAndBroadcast({ draft, photoEntry: last, source: "rest" });
   res.json({ ok: true, filename: last.filename });
-});
-
-app.post("/notification/finalize", async (req, res) => {
-  const out = await executeNotificationFunction("notification_finalize", {});
-  res.status(out.ok ? 200 : 400).json(out);
 });
 
 /* ------------------------------ Work order REST ---------------------------- */
@@ -1051,13 +1273,15 @@ app.get("/stream", (req, res) => {
   const keepAlive = setInterval(() => res.write(": keep-alive\n\n"), 15000);
 
   if (notificationDraft) {
-    res.write(`data: ${JSON.stringify({
-      type: "notification.state",
-      mode: notificationDraft.mode,
-      missingRequired: computeMissingRequired(notificationDraft),
-      actionSummary: "Draft synced.",
-      draft: notificationDraft,
-    })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({
+        type: "notification.state",
+        mode: notificationDraft.mode,
+        missingRequired: computeMissingRequired(notificationDraft),
+        actionSummary: "Draft synced.",
+        draft: notificationDraft,
+      })}\n\n`
+    );
   }
 
   req.on("close", () => {

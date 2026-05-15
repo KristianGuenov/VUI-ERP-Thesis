@@ -23,6 +23,25 @@ struct NotificationQRRequest: Identifiable, Equatable {
     let reason: String
 }
 
+// NEW: Field confirmation request (server-enforced gate)
+struct NotificationFieldConfirmRequest: Identifiable, Equatable {
+    var id: String { requestId }
+    let requestId: String
+    let field: String
+    let proposedValue: String
+    let readback: String
+    let reason: String
+}
+
+// NEW: Finalize confirmation request (server-enforced gate)
+struct NotificationFinalizeConfirmRequest: Identifiable, Equatable {
+    var id: String { requestId }
+    let requestId: String
+    let reason: String
+    let missingRequired: [String]
+    let draft: NotificationDraft?
+}
+
 @MainActor
 final class VoiceChatViewModel: ObservableObject {
 
@@ -31,7 +50,7 @@ final class VoiceChatViewModel: ObservableObject {
     private var playbackPlayer = AVAudioPlayerNode()
 
     // IMPORTANT: keep your server IP here
-    private let server = "http://10.4.4.148:3000"
+    private let server = "http://10.4.4.136:3000"
     var serverBaseURL: String { server }
 
     // MARK: - Published state for UI
@@ -52,16 +71,18 @@ final class VoiceChatViewModel: ObservableObject {
     @Published var notificationLastActionSummary: String = ""
     @Published var notificationLatestDraft: NotificationDraft? = nil
     @Published var notificationLatestJSONPretty: String = ""
+    @Published var notificationVisionResults: [NotificationVisionResult] = []
 
     @Published var notificationPhotoRequest: NotificationPhotoRequest? = nil
     @Published var notificationQRRequest: NotificationQRRequest? = nil
 
+    // NEW: confirmation gates
+    @Published var notificationFieldConfirmRequest: NotificationFieldConfirmRequest? = nil
+    @Published var notificationFinalizeConfirmRequest: NotificationFinalizeConfirmRequest? = nil
+
     // upload/remove status for UI
     @Published var notificationUploadInFlight: Bool = false
     @Published var notificationUploadError: String? = nil
-
-    // NEW (Step 6): Vision fallback results from SSE "notification.vision_result"
-    @Published var notificationVisionResults: [NotificationVisionResult] = []
 
     // MARK: - Internal state
     private var isStreaming = false
@@ -200,32 +221,54 @@ final class VoiceChatViewModel: ObservableObject {
 
     // MARK: - Notification REST calls
 
+    /// Manual entry uses source="manual" so the server can skip critical-field gates for typing.
     func syncNotificationField(field: String, value: String?) async {
         let trimmed = (value ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+
         if trimmed.isEmpty {
-            await postJSON(path: "/notification/clear_field", body: ["field": field])
+            await postJSON(path: "/notification/clear_field", body: ["field": field, "source": "manual"])
         } else {
-            await postJSON(path: "/notification/set_field", body: ["field": field, "value": trimmed])
+            await postJSON(path: "/notification/set_field", body: ["field": field, "value": trimmed, "source": "manual"])
         }
     }
 
-    /// Bulk-set multiple fields in one round-trip (faster, used by QR scan)
+    /// Bulk-set multiple fields (used by QR scan). Source="qr".
     func setNotificationFields(fields: [String: String]) async {
-        await postJSON(path: "/notification/set_fields", body: ["fields": fields])
+        await postJSON(path: "/notification/set_fields", body: ["fields": fields, "source": "qr"])
     }
 
-    /// Ask server to resolve QR and apply to draft
+    /// Ask server to resolve QR and apply. Source="qr".
     func applyQRCode(raw: String) async {
-        await postJSON(path: "/notification/apply_qr", body: ["raw": raw])
+        await postJSON(path: "/notification/apply_qr", body: ["raw": raw, "source": "qr"])
     }
 
-    func clearNotificationPhotoRequest() {
-        notificationPhotoRequest = nil
+    // NEW: confirm/reject/correct critical numeric field (server-enforced)
+    func confirmNotificationField(requestId: String, accept: Bool, correctedValue: String? = nil) async {
+        var body: [String: Any] = [
+            "requestId": requestId,
+            "accept": accept
+        ]
+        if let correctedValue {
+            body["correctedValue"] = correctedValue
+        }
+        await postJSON(path: "/notification/confirm_field", body: body)
     }
 
-    func clearNotificationQRRequest() {
-        notificationQRRequest = nil
+    // NEW: request finalize gate (server will respond by sending notification.confirm_finalize SSE)
+    func requestFinalizeGate(source: String = "ui") async {
+        await postJSON(path: "/notification/finalize_gate", body: ["source": source])
     }
+
+    // NEW: confirm finalize gate (server will finalize only if accept=true)
+    func confirmNotificationFinalize(requestId: String, accept: Bool) async {
+        await postJSON(path: "/notification/confirm_finalize", body: ["requestId": requestId, "accept": accept])
+    }
+
+    func clearNotificationPhotoRequest() { notificationPhotoRequest = nil }
+    func clearNotificationQRRequest() { notificationQRRequest = nil }
+
+    func clearNotificationFieldConfirmRequest() { notificationFieldConfirmRequest = nil }
+    func clearNotificationFinalizeConfirmRequest() { notificationFinalizeConfirmRequest = nil }
 
     func attachNotificationPhoto(image: UIImage,
                                  source: String,
@@ -745,6 +788,52 @@ final class VoiceChatViewModel: ObservableObject {
             return
         }
 
+        // NEW: server asks client to confirm a critical field (voice)
+        if type == "notification.confirm_field" {
+            let requestId = (dict["requestId"] as? String) ?? ""
+            let field = (dict["field"] as? String) ?? ""
+            let proposedValue = (dict["proposedValue"] as? String) ?? ""
+            let readback = (dict["readback"] as? String) ?? proposedValue
+            let reason = (dict["reason"] as? String) ?? "critical_numeric"
+
+            await MainActor.run {
+                if !requestId.isEmpty, !field.isEmpty {
+                    self.notificationFieldConfirmRequest = NotificationFieldConfirmRequest(
+                        requestId: requestId,
+                        field: field,
+                        proposedValue: proposedValue,
+                        readback: readback,
+                        reason: reason
+                    )
+                }
+            }
+            return
+        }
+
+        // NEW: server asks client to confirm finalize (voice or UI)
+        if type == "notification.confirm_finalize" {
+            let requestId = (dict["requestId"] as? String) ?? ""
+            let reason = (dict["reason"] as? String) ?? "Finalize confirmation required"
+            let missing = (dict["missingRequired"] as? [String]) ?? []
+
+            var decodedDraft: NotificationDraft? = nil
+            if let draftObj = dict["draft"] {
+                decodedDraft = self.decodeNotificationDraft(from: draftObj)
+            }
+
+            await MainActor.run {
+                if !requestId.isEmpty {
+                    self.notificationFinalizeConfirmRequest = NotificationFinalizeConfirmRequest(
+                        requestId: requestId,
+                        reason: reason,
+                        missingRequired: missing,
+                        draft: decodedDraft
+                    )
+                }
+            }
+            return
+        }
+
         if type == "notification.state" {
             await MainActor.run {
                 self.notificationServerMode = (dict["mode"] as? String) ?? "minimal"
@@ -772,23 +861,6 @@ final class VoiceChatViewModel: ObservableObject {
 
                 if let njson = dict["notificationJson"] {
                     self.notificationLatestJSONPretty = self.prettyJSONString(from: njson)
-                }
-            }
-            return
-        }
-
-        // NEW (Step 6): Vision fallback event (decode from JSON, no dict initializer)
-        if type == "notification.vision_result" {
-            if let vr = try? JSONDecoder().decode(NotificationVisionResult.self, from: data) {
-                await MainActor.run {
-                    self.notificationVisionResults.insert(vr, at: 0)
-                    if self.notificationVisionResults.count > 25 {
-                        self.notificationVisionResults = Array(self.notificationVisionResults.prefix(25))
-                    }
-                }
-            } else {
-                await MainActor.run {
-                    self.logEssential("notification.vision_result received but failed to decode")
                 }
             }
             return

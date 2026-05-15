@@ -7,11 +7,9 @@ import {
   listWorkOrdersForTechnician
 } from "./workOrders.js";
 
-// Simple in-memory conversation context (single-tech prototype)
-let currentTechnicianId = "TECH001"; // TODO: later pass real user id from client
+let currentTechnicianId = "TECH001";
 let currentWorkOrderId = null;
 
-// Utility to update last_changed timestamp
 function updateTimestamp(header) {
   header.last_changed = new Date().toISOString();
 }
@@ -24,16 +22,17 @@ function setCurrentWorkOrder(orderId) {
   currentWorkOrderId = orderId;
 }
 
-/**
- * Standardized responses so the assistant can reliably:
- * - Detect whether a mutation occurred
- * - Start every mutation reply with "I confirm I have ..."
- */
+function isOperationClosed(op) {
+  return ["closed", "completed", "done"].includes(
+    String(op.status || "").toLowerCase()
+  );
+}
+
 function mutationResponse({ action_summary, payload }) {
   return {
     ok: true,
     mutated: true,
-    action_summary, // must start with "I confirm I have ..."
+    action_summary,
     ...payload
   };
 }
@@ -46,10 +45,6 @@ function readResponse(payload) {
   };
 }
 
-/**
- * Control events are interpreted by index.js and sent to the client as:
- * { type: "session.control", mode: "soft_end" | "hard_end", reason: "..." }
- */
 function controlResponse({ mode, reason, last_order_id }) {
   return {
     ok: true,
@@ -58,24 +53,21 @@ function controlResponse({ mode, reason, last_order_id }) {
   };
 }
 
-// Keep totals consistent by recomputing from operations + order-level confirmations if needed.
-// In your prototype: Totals.total_actual_time_minutes is used as order-level accumulator.
-// For operation-level reporting, recompute from operations to avoid drift.
 function recomputeActualTotals(wo) {
   const opsTotal = (wo.Operations || []).reduce(
     (sum, o) => sum + (Number(o.actual_duration_minutes) || 0),
     0
   );
 
-  // Keep order-level total as opsTotal PLUS any ORDER-level confirmations (if you want both).
-  // Your current design adds "add_time_to_work_order" to Totals directly and creates confirmations.
-  // To preserve that, we compute ORDER-level minutes separately and add.
   const orderLevelMinutes = (wo.TimeConfirmations || [])
     .filter((c) => c?.level === "ORDER")
     .reduce((sum, c) => sum + (Number(c.duration_minutes) || 0), 0);
 
   if (!wo.Totals) {
-    wo.Totals = { total_planned_time_minutes: 0, total_actual_time_minutes: 0 };
+    wo.Totals = {
+      total_planned_time_minutes: 0,
+      total_actual_time_minutes: 0
+    };
   }
 
   wo.Totals.total_actual_time_minutes = opsTotal + orderLevelMinutes;
@@ -86,9 +78,6 @@ export async function executeWorkOrderFunction(name, args) {
   debug("Args:", args);
 
   switch (name) {
-    /* -------------------------------------------------------- */
-    /* START WORK ORDER                                          */
-    /* -------------------------------------------------------- */
     case "start_work_order": {
       const { order_id } = args;
       const wo = getWorkOrder(order_id);
@@ -96,12 +85,10 @@ export async function executeWorkOrderFunction(name, args) {
 
       wo.OrderHeader.status.user_status = ["IN_PROCESS"];
 
-      // Default assignee if missing
       if (!wo.OrderHeader.assigned_to) {
         wo.OrderHeader.assigned_to = currentTechnicianId;
       }
 
-      // Set as current context
       setCurrentWorkOrder(order_id);
       updateTimestamp(wo.OrderHeader);
 
@@ -116,9 +103,6 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* PAUSE WORK ORDER                                          */
-    /* -------------------------------------------------------- */
     case "pause_work_order": {
       const { order_id } = args;
       const wo = getWorkOrder(order_id);
@@ -126,8 +110,6 @@ export async function executeWorkOrderFunction(name, args) {
 
       wo.OrderHeader.status.user_status = ["PAUSED"];
       updateTimestamp(wo.OrderHeader);
-
-      // Keep context
       setCurrentWorkOrder(order_id);
 
       return mutationResponse({
@@ -140,9 +122,6 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* UPDATE DESCRIPTION                                        */
-    /* -------------------------------------------------------- */
     case "update_description": {
       const { order_id, description } = args;
       const wo = getWorkOrder(order_id);
@@ -162,9 +141,6 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* REPORT TIME (OPERATION LEVEL)                             */
-    /* -------------------------------------------------------- */
     case "report_time": {
       const { order_id, operation_id, minutes } = args;
       const wo = getWorkOrder(order_id);
@@ -172,14 +148,18 @@ export async function executeWorkOrderFunction(name, args) {
 
       const op = wo.Operations.find((o) => o.operation_id === operation_id);
       if (!op) {
-        return { ok: false, error: "OPERATION_NOT_FOUND", order_id, operation_id };
+        return {
+          ok: false,
+          error: "OPERATION_NOT_FOUND",
+          order_id,
+          operation_id
+        };
       }
 
-      op.actual_duration_minutes = (Number(op.actual_duration_minutes) || 0) + Number(minutes || 0);
+      op.actual_duration_minutes =
+        (Number(op.actual_duration_minutes) || 0) + Number(minutes || 0);
 
-      // Recompute totals to avoid drift
       recomputeActualTotals(wo);
-
       updateTimestamp(wo.OrderHeader);
       setCurrentWorkOrder(order_id);
 
@@ -196,16 +176,20 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* START OPERATION                                           */
-    /* -------------------------------------------------------- */
     case "start_operation": {
       const { order_id, operation_id } = args;
       const wo = getWorkOrder(order_id);
       if (!wo) return { ok: false, error: "WORK_ORDER_NOT_FOUND", order_id };
 
       const op = wo.Operations.find((o) => o.operation_id === operation_id);
-      if (!op) return { ok: false, error: "OPERATION_NOT_FOUND", operation_id };
+      if (!op) {
+        return {
+          ok: false,
+          error: "OPERATION_NOT_FOUND",
+          order_id,
+          operation_id
+        };
+      }
 
       op.status = "in_progress";
       op.started_at = new Date().toISOString();
@@ -225,15 +209,51 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* VALIDATE WORK ORDER COMPLETION                            */
-    /* -------------------------------------------------------- */
+    case "close_operation": {
+      const { order_id, operation_id } = args;
+      const wo = getWorkOrder(order_id);
+      if (!wo) return { ok: false, error: "WORK_ORDER_NOT_FOUND", order_id };
+
+      const op = wo.Operations.find((o) => o.operation_id === operation_id);
+      if (!op) {
+        return {
+          ok: false,
+          error: "OPERATION_NOT_FOUND",
+          order_id,
+          operation_id
+        };
+      }
+
+      op.status = "closed";
+      op.is_confirmed = true;
+      op.completed_at = new Date().toISOString();
+
+      if (!op.started_at) {
+        op.started_at = op.completed_at;
+      }
+
+      updateTimestamp(wo.OrderHeader);
+      setCurrentWorkOrder(order_id);
+
+      return mutationResponse({
+        action_summary: `I confirm I have closed operation ${operation_id} for work order ${order_id}.`,
+        payload: {
+          type: "OPERATION_CLOSED",
+          order_id,
+          operation_id,
+          status: op.status,
+          is_confirmed: op.is_confirmed,
+          completed_at: op.completed_at
+        }
+      });
+    }
+
     case "validate_complete_work_order": {
       const { order_id } = args;
       const wo = getWorkOrder(order_id);
       if (!wo) return { ok: false, error: "WORK_ORDER_NOT_FOUND", order_id };
 
-      const openOps = wo.Operations.filter((op) => op.status !== "completed");
+      const openOps = wo.Operations.filter((op) => !isOperationClosed(op));
 
       return readResponse({
         type: "WORK_ORDER_VALIDATION",
@@ -247,15 +267,12 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* COMPLETE WORK ORDER                                       */
-    /* -------------------------------------------------------- */
     case "complete_work_order": {
       const { order_id, force } = args;
       const wo = getWorkOrder(order_id);
       if (!wo) return { ok: false, error: "WORK_ORDER_NOT_FOUND", order_id };
 
-      const openOps = wo.Operations.filter((op) => op.status !== "completed");
+      const openOps = wo.Operations.filter((op) => !isOperationClosed(op));
 
       if (openOps.length > 0 && !force) {
         return {
@@ -270,24 +287,27 @@ export async function executeWorkOrderFunction(name, args) {
         };
       }
 
-      // Auto-complete operations
       if (force) {
         for (const op of openOps) {
-          op.status = "completed";
+          op.status = "closed";
+          op.is_confirmed = true;
           op.completed_at = new Date().toISOString();
+
+          if (!op.started_at) {
+            op.started_at = op.completed_at;
+          }
         }
       }
 
       wo.OrderHeader.status.user_status = ["COMPLETED"];
       updateTimestamp(wo.OrderHeader);
 
-      // Clear current WO context if it was this one
       if (currentWorkOrderId === order_id) {
         setCurrentWorkOrder(null);
       }
 
       const summary = force
-        ? `I confirm I have force-closed work order ${order_id} and completed ${openOps.length} open operation(s).`
+        ? `I confirm I have force-closed work order ${order_id} and closed ${openOps.length} open operation(s).`
         : `I confirm I have closed work order ${order_id}.`;
 
       return mutationResponse({
@@ -302,15 +322,12 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* GET WORK ORDER STATUS                                     */
-    /* -------------------------------------------------------- */
     case "get_work_order_status": {
       const { order_id } = args;
       const wo = getWorkOrder(order_id);
       if (!wo) return { ok: false, error: "WORK_ORDER_NOT_FOUND", order_id };
 
-      const openOps = wo.Operations.filter((op) => op.status !== "completed");
+      const openOps = wo.Operations.filter((op) => !isOperationClosed(op));
 
       return readResponse({
         type: "WORK_ORDER_STATUS",
@@ -325,9 +342,6 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* GET FULL WORK ORDER DETAILS                               */
-    /* -------------------------------------------------------- */
     case "get_work_order_details": {
       const { order_id } = args;
       const wo = getWorkOrder(order_id);
@@ -348,9 +362,6 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* GET NEXT TASK FOR TECHNICIAN                              */
-    /* -------------------------------------------------------- */
     case "get_next_task": {
       const technicianId = args.technician_id || currentTechnicianId;
 
@@ -367,7 +378,6 @@ export async function executeWorkOrderFunction(name, args) {
         });
       }
 
-      // sort by due_date, fallback to created_on
       candidates.sort((a, b) => {
         const da = Date.parse(a.OrderHeader.due_date || a.OrderHeader.created_on || 0);
         const db = Date.parse(b.OrderHeader.due_date || b.OrderHeader.created_on || 0);
@@ -394,9 +404,6 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* ADD TIME TO WORK ORDER (ORDER LEVEL)                      */
-    /* -------------------------------------------------------- */
     case "add_time_to_work_order": {
       const minutes = Number(args.minutes || 0);
       const orderId = args.order_id || currentWorkOrderId;
@@ -411,10 +418,19 @@ export async function executeWorkOrderFunction(name, args) {
       }
 
       const wo = getWorkOrder(orderId);
-      if (!wo) return { ok: false, error: "WORK_ORDER_NOT_FOUND", order_id: orderId };
+      if (!wo) {
+        return {
+          ok: false,
+          error: "WORK_ORDER_NOT_FOUND",
+          order_id: orderId
+        };
+      }
 
       if (!wo.Totals) {
-        wo.Totals = { total_planned_time_minutes: 0, total_actual_time_minutes: 0 };
+        wo.Totals = {
+          total_planned_time_minutes: 0,
+          total_actual_time_minutes: 0
+        };
       }
 
       if (!wo.TimeConfirmations) {
@@ -432,9 +448,7 @@ export async function executeWorkOrderFunction(name, args) {
         level: "ORDER"
       });
 
-      // Recompute totals to include new order-level time
       recomputeActualTotals(wo);
-
       updateTimestamp(wo.OrderHeader);
       setCurrentWorkOrder(orderId);
 
@@ -449,9 +463,6 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* SET DUE DATE                                              */
-    /* -------------------------------------------------------- */
     case "set_due_date": {
       const { order_id, due_date } = args;
       const wo = getWorkOrder(order_id);
@@ -471,9 +482,6 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* ASSIGN WORK ORDER                                         */
-    /* -------------------------------------------------------- */
     case "assign_work_order": {
       const { order_id, technician_id } = args;
       const wo = getWorkOrder(order_id);
@@ -482,7 +490,6 @@ export async function executeWorkOrderFunction(name, args) {
       wo.OrderHeader.assigned_to = technician_id;
       updateTimestamp(wo.OrderHeader);
 
-      // Update current context as well
       currentTechnicianId = technician_id;
       setCurrentWorkOrder(order_id);
 
@@ -496,9 +503,6 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* SOFT TERMINATION: END TASK SESSION                        */
-    /* -------------------------------------------------------- */
     case "end_task_session": {
       const reason = args?.reason || "Task completed";
       const last = currentWorkOrderId;
@@ -512,9 +516,6 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* HARD TERMINATION: END ASSISTANT SESSION                   */
-    /* -------------------------------------------------------- */
     case "end_assistant_session": {
       const reason = args?.reason || "Session ended";
       const last = currentWorkOrderId;
@@ -528,9 +529,6 @@ export async function executeWorkOrderFunction(name, args) {
       });
     }
 
-    /* -------------------------------------------------------- */
-    /* UNKNOWN FUNCTION                                          */
-    /* -------------------------------------------------------- */
     default:
       return { ok: false, error: "UNKNOWN_FUNCTION", name };
   }

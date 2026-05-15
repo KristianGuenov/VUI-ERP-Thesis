@@ -1,16 +1,16 @@
 {
   "OrderHeader": {
-    "order_id": "12345678",
-    "order_type": "PM01",
+    "order_id": "WO-1001",
+    "order_type": "PM03",
     "status": {
-      "system_status": ["REL"],
-      "user_status": ["PLANNED"]
+      "system_status": ["REL", "PCNF"],
+      "user_status": ["IN_PROCESS"]
     },
-    "description": "Repair motor on line 4",
-    "priority": "2",
-    "functional_location": "PLANT/AREA/LINE4",
-    "equipment_id": "EQ-009983",
-    "planner_group": "100",
+    "description": "Replace filter on air unit",
+    "priority": "1",
+    "functional_location": "PLANT/UTIL/HVAC1",
+    "equipment_id": "EQ-1001",
+    "planner_group": "300",
     "created_by": "TECH001",
     "created_on": "2025-11-19T10:00:00Z",
     "last_changed": "2025-11-19T10:00:00Z",
@@ -19,24 +19,24 @@
   },
   "Operations": [
     {
-      "operation_id": "0010",
-      "work_center": "MECH",
-      "control_key": "PM01",
-      "description": "Disassemble motor housing",
-      "status": "pending",
-      "planned_duration_minutes": 60,
-      "actual_duration_minutes": 0,
-      "is_confirmed": false,
-      "started_at": null,
-      "completed_at": null
+      "operation_id": "OP-1",
+      "work_center": "HVAC",
+      "control_key": "PM03",
+      "description": "Remove old filter",
+      "status": "closed",
+      "planned_duration_minutes": 30,
+      "actual_duration_minutes": 55,
+      "is_confirmed": true,
+      "started_at": "2025-11-19T09:00:00Z",
+      "completed_at": "2025-11-19T09:55:00Z"
     },
     {
-      "operation_id": "0020",
-      "work_center": "MECH",
-      "control_key": "PM01",
-      "description": "Replace bearing 6205",
-      "status": "pending",
-      "planned_duration_minutes": 30,
+      "operation_id": "OP-2",
+      "work_center": "HVAC",
+      "control_key": "PM03",
+      "description": "Install new filter",
+      "status": "open",
+      "planned_duration_minutes": 25,
       "actual_duration_minutes": 0,
       "is_confirmed": false,
       "started_at": null,
@@ -46,23 +46,34 @@
   "Components": [
     {
       "component_id": "30002341",
-      "description": "Bearing 6205",
+      "description": "Replacement air filter",
       "quantity_required": 1,
       "quantity_issued": 0,
       "unit": "PC",
       "storage_location": "0001"
     }
   ],
-  "TimeConfirmations": [],
+  "TimeConfirmations": [
+    {
+      "confirmation_id": "C-WO1001-001",
+      "operation_id": "OP-1",
+      "technician_id": "TECH001",
+      "start_time": "2025-11-19T09:00:00Z",
+      "end_time": "2025-11-19T09:55:00Z",
+      "duration_minutes": 55,
+      "final_confirmation": true
+    }
+  ],
   "Notifications": [],
+  "Notes": [],
   "SafetyChecklist": {
-    "ppe_worn": false,
-    "lockout_tagout": false,
-    "area_secured": false,
+    "ppe_worn": true,
+    "lockout_tagout": true,
+    "area_secured": true,
     "comments": ""
   },
   "Totals": {
-    "total_planned_time_minutes": 90,
-    "total_actual_time_minutes": 0
+    "total_planned_time_minutes": 55,
+    "total_actual_time_minutes": 55
   }
 }

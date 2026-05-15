@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "analyze:kpis": "node experiment/analyzeKpis.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -16,6 +17,8 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.4",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
   }
 }

@@ -1,15 +1,15 @@
 {
   "OrderHeader": {
-    "order_id": "12345679",
+    "order_id": "WO-2002",
     "order_type": "PM02",
     "status": {
-      "system_status": ["CRTD"],
-      "user_status": ["PLANNED"]
+      "system_status": ["REL", "PCNF"],
+      "user_status": ["IN_PROCESS"]
     },
-    "description": "Routine electrical inspection of conveyor",
+    "description": "Fix conveyor belt alignment",
     "priority": "3",
     "functional_location": "PLANT/AREA/CONV1",
-    "equipment_id": "EQ-004211",
+    "equipment_id": "EQ-2002",
     "planner_group": "200",
     "created_by": "TECH002",
     "created_on": "2025-11-18T08:20:00Z",
@@ -19,24 +19,24 @@
   },
   "Operations": [
     {
-      "operation_id": "0010",
-      "work_center": "ELEC",
+      "operation_id": "OP-A",
+      "work_center": "MECH",
       "control_key": "PM02",
-      "description": "Visual inspection of wiring",
-      "status": "pending",
-      "planned_duration_minutes": 45,
-      "actual_duration_minutes": 0,
-      "is_confirmed": false,
-      "started_at": null,
-      "completed_at": null
+      "description": "Inspect belt",
+      "status": "closed",
+      "planned_duration_minutes": 40,
+      "actual_duration_minutes": 40,
+      "is_confirmed": true,
+      "started_at": "2025-11-18T09:00:00Z",
+      "completed_at": "2025-11-18T09:40:00Z"
     },
     {
-      "operation_id": "0020",
-      "work_center": "ELEC",
+      "operation_id": "OP-B",
+      "work_center": "MECH",
       "control_key": "PM02",
-      "description": "Measure line voltage and grounding",
-      "status": "pending",
-      "planned_duration_minutes": 20,
+      "description": "Adjust rollers",
+      "status": "open",
+      "planned_duration_minutes": 35,
       "actual_duration_minutes": 0,
       "is_confirmed": false,
       "started_at": null,
@@ -44,26 +44,27 @@
     }
   ],
   "Components": [],
-  "TimeConfirmations": [],
-  "Notifications": [
+  "TimeConfirmations": [
     {
-      "notification_id": "1000000890",
-      "type": "M3",
-      "description": "Occasional voltage spikes reported",
-      "created_by": "TECH002",
-      "created_on": "2025-11-18T08:30:00Z",
-      "priority": "3",
-      "attachments": []
+      "confirmation_id": "C-WO2002-001",
+      "operation_id": "OP-A",
+      "technician_id": "TECH001",
+      "start_time": "2025-11-18T09:00:00Z",
+      "end_time": "2025-11-18T09:40:00Z",
+      "duration_minutes": 40,
+      "final_confirmation": true
     }
   ],
+  "Notifications": [],
+  "Notes": [],
   "SafetyChecklist": {
-    "ppe_worn": false,
-    "lockout_tagout": false,
-    "area_secured": false,
+    "ppe_worn": true,
+    "lockout_tagout": true,
+    "area_secured": true,
     "comments": ""
   },
   "Totals": {
-    "total_planned_time_minutes": 65,
-    "total_actual_time_minutes": 0
+    "total_planned_time_minutes": 75,
+    "total_actual_time_minutes": 40
   }
 }

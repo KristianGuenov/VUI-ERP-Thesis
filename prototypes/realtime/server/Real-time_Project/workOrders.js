@@ -13,11 +13,11 @@ const workOrder1 = loadJSON("workOrder1.json");
 const workOrder2 = loadJSON("workOrder2.json");
 const workOrder3 = loadJSON("workOrder3.json");
 
-export const WORK_ORDERS = new Map([
-  [workOrder1.OrderHeader.order_id, structuredClone(workOrder1)],
-  [workOrder2.OrderHeader.order_id, structuredClone(workOrder2)],
-  [workOrder3.OrderHeader.order_id, structuredClone(workOrder3)]
-]);
+const DEFAULT_WORK_ORDERS = [workOrder1, workOrder2, workOrder3];
+
+export const WORK_ORDERS = new Map(
+  DEFAULT_WORK_ORDERS.map((wo) => [wo.OrderHeader.order_id, structuredClone(wo)])
+);
 
 export function getWorkOrder(id) {
   const wo = WORK_ORDERS.get(id);
@@ -43,9 +43,22 @@ export function updateWorkOrder(orderId, updatedOrder) {
 
 export function resetWorkOrders() {
   WORK_ORDERS.clear();
-  WORK_ORDERS.set(workOrder1.OrderHeader.order_id, structuredClone(workOrder1));
-  WORK_ORDERS.set(workOrder2.OrderHeader.order_id, structuredClone(workOrder2));
-  WORK_ORDERS.set(workOrder3.OrderHeader.order_id, structuredClone(workOrder3));
+
+  for (const wo of DEFAULT_WORK_ORDERS) {
+    WORK_ORDERS.set(wo.OrderHeader.order_id, structuredClone(wo));
+  }
+}
+
+export function setExperimentWorkOrders(workOrders) {
+  WORK_ORDERS.clear();
+
+  for (const wo of workOrders || []) {
+    if (!wo?.OrderHeader?.order_id) {
+      throw new Error("Experiment work order is missing OrderHeader.order_id");
+    }
+
+    WORK_ORDERS.set(wo.OrderHeader.order_id, structuredClone(wo));
+  }
 }
 
 export function listWorkOrders() {

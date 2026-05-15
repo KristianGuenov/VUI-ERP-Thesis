@@ -1,0 +1,606 @@
+[
+  {
+    "scenarioId": "S01",
+    "title": "Add 20 minutes to WO-1001",
+    "workOrderId": "WO-1001",
+    "numericHeavy": true,
+    "includedInConfirmationCompliance": true,
+    "spokenPrompts": ["Add 20 minutes to WO-1001.", "Yes, confirm."],
+    "expectedEntities": {
+      "order_id": "WO-1001",
+      "minutes": 20
+    },
+    "allowedOperations": [
+      {
+        "toolName": "add_time_to_work_order",
+        "order_id": "WO-1001",
+        "minutes": 20
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "id",
+        "equals": "WO-1001"
+      },
+      {
+        "path": "timeReported",
+        "equals": 75
+      }
+    ],
+    "initialState": [
+      {
+        "id": "WO-1001",
+        "status": "in_progress",
+        "description": "Replace filter on air unit",
+        "timeReported": 55,
+        "operations": [
+          { "id": "OP-1", "description": "Remove old filter", "status": "closed" },
+          { "id": "OP-2", "description": "Install new filter", "status": "open" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-2002",
+        "status": "closed",
+        "description": "Fix conveyor belt alignment",
+        "timeReported": 40,
+        "operations": [
+          { "id": "OP-A", "description": "Inspect belt", "status": "closed" },
+          { "id": "OP-B", "description": "Adjust rollers", "status": "closed" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-3003",
+        "status": "open",
+        "description": "remove filter.",
+        "timeReported": 0,
+        "operations": [
+          { "id": "OP-11", "description": "Run diagnostics", "status": "open" }
+        ],
+        "notes": []
+      }
+    ]
+  },
+  {
+    "scenarioId": "S02",
+    "title": "Add 45 minutes to WO-3003",
+    "workOrderId": "WO-3003",
+    "numericHeavy": true,
+    "includedInConfirmationCompliance": true,
+    "spokenPrompts": ["Add 45 minutes to WO-3003.", "Yes, confirm."],
+    "expectedEntities": {
+      "order_id": "WO-3003",
+      "minutes": 45
+    },
+    "allowedOperations": [
+      {
+        "toolName": "add_time_to_work_order",
+        "order_id": "WO-3003",
+        "minutes": 45
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "id",
+        "equals": "WO-3003"
+      },
+      {
+        "path": "timeReported",
+        "equals": 45
+      }
+    ],
+    "initialState": [
+      {
+        "id": "WO-1001",
+        "status": "in_progress",
+        "description": "Replace filter on air unit",
+        "timeReported": 55,
+        "operations": [
+          { "id": "OP-1", "description": "Remove old filter", "status": "closed" },
+          { "id": "OP-2", "description": "Install new filter", "status": "open" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-2002",
+        "status": "closed",
+        "description": "Fix conveyor belt alignment",
+        "timeReported": 40,
+        "operations": [
+          { "id": "OP-A", "description": "Inspect belt", "status": "closed" },
+          { "id": "OP-B", "description": "Adjust rollers", "status": "closed" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-3003",
+        "status": "open",
+        "description": "remove filter.",
+        "timeReported": 0,
+        "operations": [
+          { "id": "OP-11", "description": "Run diagnostics", "status": "open" }
+        ],
+        "notes": []
+      }
+    ]
+  },
+  {
+    "scenarioId": "S03",
+    "title": "Close operation OP-2 in WO-1001",
+    "workOrderId": "WO-1001",
+    "numericHeavy": true,
+    "includedInConfirmationCompliance": true,
+    "spokenPrompts": ["Close operation OP-2 in WO-1001.", "Yes, confirm."],
+    "expectedEntities": {
+      "order_id": "WO-1001",
+      "operation_id": "OP-2"
+    },
+    "allowedOperations": [
+      {
+        "toolName": "close_operation",
+        "order_id": "WO-1001",
+        "operation_id": "OP-2"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "id",
+        "equals": "WO-1001"
+      },
+      {
+        "path": "operationsById.OP-2.status",
+        "equals": "closed"
+      }
+    ],
+    "initialState": [
+      {
+        "id": "WO-1001",
+        "status": "in_progress",
+        "description": "Replace filter on air unit",
+        "timeReported": 55,
+        "operations": [
+          { "id": "OP-1", "description": "Remove old filter", "status": "closed" },
+          { "id": "OP-2", "description": "Install new filter", "status": "open" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-2002",
+        "status": "closed",
+        "description": "Fix conveyor belt alignment",
+        "timeReported": 40,
+        "operations": [
+          { "id": "OP-A", "description": "Inspect belt", "status": "closed" },
+          { "id": "OP-B", "description": "Adjust rollers", "status": "closed" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-3003",
+        "status": "open",
+        "description": "remove filter.",
+        "timeReported": 0,
+        "operations": [
+          { "id": "OP-11", "description": "Run diagnostics", "status": "open" }
+        ],
+        "notes": []
+      }
+    ]
+  },
+  {
+    "scenarioId": "S04",
+    "title": "Close operation OP-B in WO-2002",
+    "workOrderId": "WO-2002",
+    "numericHeavy": true,
+    "includedInConfirmationCompliance": true,
+    "spokenPrompts": ["Close operation OP-B in WO-2002.", "Yes, confirm."],
+    "expectedEntities": {
+      "order_id": "WO-2002",
+      "operation_id": "OP-B"
+    },
+    "allowedOperations": [
+      {
+        "toolName": "close_operation",
+        "order_id": "WO-2002",
+        "operation_id": "OP-B"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "id",
+        "equals": "WO-2002"
+      },
+      {
+        "path": "operationsById.OP-B.status",
+        "equals": "closed"
+      }
+    ],
+    "initialState": [
+      {
+        "id": "WO-1001",
+        "status": "in_progress",
+        "description": "Replace filter on air unit",
+        "timeReported": 55,
+        "operations": [
+          { "id": "OP-1", "description": "Remove old filter", "status": "closed" },
+          { "id": "OP-2", "description": "Install new filter", "status": "open" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-2002",
+        "status": "in_progress",
+        "description": "Fix conveyor belt alignment",
+        "timeReported": 40,
+        "operations": [
+          { "id": "OP-A", "description": "Inspect belt", "status": "closed" },
+          { "id": "OP-B", "description": "Adjust rollers", "status": "open" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-3003",
+        "status": "open",
+        "description": "remove filter.",
+        "timeReported": 0,
+        "operations": [
+          { "id": "OP-11", "description": "Run diagnostics", "status": "open" }
+        ],
+        "notes": []
+      }
+    ]
+  },
+  {
+    "scenarioId": "S05",
+    "title": "Close operation OP-11 in WO-3003",
+    "workOrderId": "WO-3003",
+    "numericHeavy": true,
+    "includedInConfirmationCompliance": true,
+    "spokenPrompts": ["Close operation OP-11 in WO-3003.", "Yes, confirm."],
+    "expectedEntities": {
+      "order_id": "WO-3003",
+      "operation_id": "OP-11"
+    },
+    "allowedOperations": [
+      {
+        "toolName": "close_operation",
+        "order_id": "WO-3003",
+        "operation_id": "OP-11"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "id",
+        "equals": "WO-3003"
+      },
+      {
+        "path": "operationsById.OP-11.status",
+        "equals": "closed"
+      }
+    ],
+    "initialState": [
+      {
+        "id": "WO-1001",
+        "status": "in_progress",
+        "description": "Replace filter on air unit",
+        "timeReported": 55,
+        "operations": [
+          { "id": "OP-1", "description": "Remove old filter", "status": "closed" },
+          { "id": "OP-2", "description": "Install new filter", "status": "open" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-2002",
+        "status": "closed",
+        "description": "Fix conveyor belt alignment",
+        "timeReported": 40,
+        "operations": [
+          { "id": "OP-A", "description": "Inspect belt", "status": "closed" },
+          { "id": "OP-B", "description": "Adjust rollers", "status": "closed" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-3003",
+        "status": "open",
+        "description": "remove filter.",
+        "timeReported": 0,
+        "operations": [
+          { "id": "OP-11", "description": "Run diagnostics", "status": "open" }
+        ],
+        "notes": []
+      }
+    ]
+  },
+  {
+    "scenarioId": "S06",
+    "title": "Start work order WO-3003",
+    "workOrderId": "WO-3003",
+    "numericHeavy": false,
+    "includedInConfirmationCompliance": false,
+    "spokenPrompts": ["Start work order WO-3003."],
+    "expectedEntities": {},
+    "allowedOperations": [
+      {
+        "toolName": "start_work_order",
+        "order_id": "WO-3003",
+        "status": "in_progress"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "id",
+        "equals": "WO-3003"
+      },
+      {
+        "path": "status",
+        "equals": "in_progress"
+      }
+    ],
+    "initialState": [
+      {
+        "id": "WO-1001",
+        "status": "in_progress",
+        "description": "Replace filter on air unit",
+        "timeReported": 55,
+        "operations": [
+          { "id": "OP-1", "description": "Remove old filter", "status": "closed" },
+          { "id": "OP-2", "description": "Install new filter", "status": "open" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-2002",
+        "status": "closed",
+        "description": "Fix conveyor belt alignment",
+        "timeReported": 40,
+        "operations": [
+          { "id": "OP-A", "description": "Inspect belt", "status": "closed" },
+          { "id": "OP-B", "description": "Adjust rollers", "status": "closed" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-3003",
+        "status": "open",
+        "description": "remove filter.",
+        "timeReported": 0,
+        "operations": [
+          { "id": "OP-11", "description": "Run diagnostics", "status": "open" }
+        ],
+        "notes": []
+      }
+    ]
+  },
+  {
+    "scenarioId": "S07",
+    "title": "Close work order WO-2002",
+    "workOrderId": "WO-2002",
+    "numericHeavy": false,
+    "includedInConfirmationCompliance": true,
+    "spokenPrompts": ["Close work order WO-2002.", "Yes, confirm."],
+    "expectedEntities": {},
+    "allowedOperations": [
+      {
+        "toolName": "complete_work_order",
+        "order_id": "WO-2002"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "id",
+        "equals": "WO-2002"
+      },
+      {
+        "path": "status",
+        "equals": "closed"
+      }
+    ],
+    "initialState": [
+      {
+        "id": "WO-1001",
+        "status": "in_progress",
+        "description": "Replace filter on air unit",
+        "timeReported": 55,
+        "operations": [
+          { "id": "OP-1", "description": "Remove old filter", "status": "closed" },
+          { "id": "OP-2", "description": "Install new filter", "status": "open" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-2002",
+        "status": "in_progress",
+        "description": "Fix conveyor belt alignment",
+        "timeReported": 75,
+        "operations": [
+          { "id": "OP-A", "description": "Inspect belt", "status": "closed" },
+          { "id": "OP-B", "description": "Adjust rollers", "status": "closed" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-3003",
+        "status": "open",
+        "description": "remove filter.",
+        "timeReported": 0,
+        "operations": [
+          { "id": "OP-11", "description": "Run diagnostics", "status": "open" }
+        ],
+        "notes": []
+      }
+    ]
+  },
+  {
+    "scenarioId": "S08",
+    "title": "Status of WO-1001",
+    "workOrderId": "WO-1001",
+    "numericHeavy": false,
+    "includedInConfirmationCompliance": false,
+    "spokenPrompts": ["What is the status of WO-1001?"],
+    "expectedEntities": {},
+    "allowedOperations": [
+      {
+        "toolName": "get_work_order_status",
+        "order_id": "WO-1001"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "id",
+        "equals": "WO-1001"
+      }
+    ],
+    "initialState": [
+      {
+        "id": "WO-1001",
+        "status": "in_progress",
+        "description": "Replace filter on air unit",
+        "timeReported": 55,
+        "operations": [
+          { "id": "OP-1", "description": "Remove old filter", "status": "closed" },
+          { "id": "OP-2", "description": "Install new filter", "status": "open" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-2002",
+        "status": "closed",
+        "description": "Fix conveyor belt alignment",
+        "timeReported": 40,
+        "operations": [
+          { "id": "OP-A", "description": "Inspect belt", "status": "closed" },
+          { "id": "OP-B", "description": "Adjust rollers", "status": "closed" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-3003",
+        "status": "open",
+        "description": "remove filter.",
+        "timeReported": 0,
+        "operations": [
+          { "id": "OP-11", "description": "Run diagnostics", "status": "open" }
+        ],
+        "notes": []
+      }
+    ]
+  },
+  {
+    "scenarioId": "S09",
+    "title": "Summary for WO-1001",
+    "workOrderId": "WO-1001",
+    "numericHeavy": false,
+    "includedInConfirmationCompliance": false,
+    "spokenPrompts": ["Show summary for WO-1001."],
+    "expectedEntities": {},
+    "allowedOperations": [
+      {
+        "toolName": "get_work_order_details",
+        "order_id": "WO-1001"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "id",
+        "equals": "WO-1001"
+      }
+    ],
+    "initialState": [
+      {
+        "id": "WO-1001",
+        "status": "in_progress",
+        "description": "Replace filter on air unit",
+        "timeReported": 55,
+        "operations": [
+          { "id": "OP-1", "description": "Remove old filter", "status": "closed" },
+          { "id": "OP-2", "description": "Install new filter", "status": "open" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-2002",
+        "status": "closed",
+        "description": "Fix conveyor belt alignment",
+        "timeReported": 40,
+        "operations": [
+          { "id": "OP-A", "description": "Inspect belt", "status": "closed" },
+          { "id": "OP-B", "description": "Adjust rollers", "status": "closed" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-3003",
+        "status": "open",
+        "description": "remove filter.",
+        "timeReported": 0,
+        "operations": [
+          { "id": "OP-11", "description": "Run diagnostics", "status": "open" }
+        ],
+        "notes": []
+      }
+    ]
+  },
+  {
+    "scenarioId": "S10",
+    "title": "Update description of WO-3003",
+    "workOrderId": "WO-3003",
+    "numericHeavy": false,
+    "includedInConfirmationCompliance": false,
+    "spokenPrompts": ["Set description of WO-3003 to Replace filter"],
+    "expectedEntities": {},
+    "allowedOperations": [
+      {
+        "toolName": "update_description",
+        "order_id": "WO-3003",
+        "description": "Replace filter"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "id",
+        "equals": "WO-3003"
+      },
+      {
+        "path": "description",
+        "equals": "Replace filter"
+      }
+    ],
+    "initialState": [
+      {
+        "id": "WO-1001",
+        "status": "in_progress",
+        "description": "Replace filter on air unit",
+        "timeReported": 55,
+        "operations": [
+          { "id": "OP-1", "description": "Remove old filter", "status": "closed" },
+          { "id": "OP-2", "description": "Install new filter", "status": "open" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-2002",
+        "status": "closed",
+        "description": "Fix conveyor belt alignment",
+        "timeReported": 40,
+        "operations": [
+          { "id": "OP-A", "description": "Inspect belt", "status": "closed" },
+          { "id": "OP-B", "description": "Adjust rollers", "status": "closed" }
+        ],
+        "notes": []
+      },
+      {
+        "id": "WO-3003",
+        "status": "open",
+        "description": "remove filter.",
+        "timeReported": 0,
+        "operations": [
+          { "id": "OP-11", "description": "Run diagnostics", "status": "open" }
+        ],
+        "notes": []
+      }
+    ]
+  }
+]

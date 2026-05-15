@@ -1,0 +1,9 @@
+llama-cpp-python
+kokoro-onnx
+faster-whisper
+sounddevice
+webrtcvad-wheels
+websockets
+numpy
+huggingface_hub
+setuptools

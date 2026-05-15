@@ -16,16 +16,7 @@
         "status": "open"
       }
     ],
-    "notes": [
-      {
-        "text": "work order WO-1001 that states \"Machine is offline\".",
-        "timestamp": 1764239096390
-      },
-      {
-        "text": ": Machine is offline.",
-        "timestamp": 1764239122309
-      }
-    ]
+    "notes": []
   },
   {
     "id": "WO-2002",
@@ -44,23 +35,18 @@
         "status": "closed"
       }
     ],
-    "notes": [
-      {
-        "text": "work order WO-2002: Machines offline.",
-        "timestamp": 1764260415482
-      }
-    ]
+    "notes": []
   },
   {
     "id": "WO-3003",
     "status": "open",
-    "description": "remove filter.",
+    "description": "Replace Filter.",
     "timeReported": 0,
     "operations": [
       {
         "id": "OP-11",
         "description": "Run diagnostics",
-        "status": "closed"
+        "status": "open"
       }
     ],
     "notes": []

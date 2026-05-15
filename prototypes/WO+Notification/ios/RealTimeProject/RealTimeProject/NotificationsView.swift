@@ -18,28 +18,34 @@ struct NotificationsView: View {
     @State private var showQRScanner: Bool = false
     @State private var pendingQRRequestId: String? = nil
 
-    @State private var jsonVisible: Bool = true
+    @State private var jsonVisible: Bool = false
+    @State private var showLogsSheet: Bool = false
+
+    // Confirmation UI state
+    @State private var showFieldConfirmDialog: Bool = false
+    @State private var showFieldCorrectSheet: Bool = false
+    @State private var pendingFieldConfirm: NotificationFieldConfirmRequest? = nil
+    @State private var correctedValue: String = ""
+
+    @State private var showFinalizeConfirmSheet: Bool = false
+    @State private var pendingFinalizeConfirm: NotificationFinalizeConfirmRequest? = nil
 
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Color(.systemGray6), Color(.systemGray5)],
-                           startPoint: .top,
-                           endPoint: .bottom)
-            .ignoresSafeArea()
+            Color(.systemGroupedBackground).ignoresSafeArea()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 14) {
 
                     headerStatusRow
-                    assistantCard
-                    logsCard
+
+                    if voiceModel.notificationUploadInFlight || ((voiceModel.notificationUploadError ?? "").isEmpty == false) {
+                        uploadStatusBanner
+                    }
+
                     manualEntryCard
-                    attachmentsCard
                     draftPhotosCard
-
-                    // NEW
                     visionInsightsCard
-
                     notificationDraftSummaryCard
 
                     if !voiceModel.notificationLatestJSONPretty.isEmpty {
@@ -47,33 +53,61 @@ struct NotificationsView: View {
                     }
 
                     startStopButton
-                        .padding(.top, 10)
-                        .padding(.bottom, 24)
+                        .padding(.top, 8)
+                        .padding(.bottom, 16)
                         .frame(maxWidth: .infinity, alignment: .center)
+
+                    Color.clear.frame(height: 90)
                 }
                 .padding(.horizontal)
                 .padding(.top, 12)
             }
         }
+        .safeAreaInset(edge: .bottom) { bottomAttachmentBar }
+
+        // Merge server draft into wizard (preserving local edits)
         .onReceive(voiceModel.$notificationLatestDraft) { server in
             guard let server else { return }
             let merged = mergeServerDraftPreservingLocalEdits(server)
             wizard.applyServerDraft(merged)
         }
+
+        // Voice-driven photo request
         .onReceive(voiceModel.$notificationPhotoRequest) { req in
             guard let req else { return }
             pendingVoiceRequestId = req.requestId
             showCamera = true
         }
+
+        // Voice-driven QR request
         .onReceive(voiceModel.$notificationQRRequest) { req in
             guard let req else { return }
             pendingQRRequestId = req.requestId
             showQRScanner = true
         }
+
+        // NEW: critical numeric field confirmation request from server
+        .onReceive(voiceModel.$notificationFieldConfirmRequest) { req in
+            guard let req else { return }
+            pendingFieldConfirm = req
+            correctedValue = req.proposedValue
+            showFieldConfirmDialog = true
+        }
+
+        // NEW: finalize confirmation request from server
+        .onReceive(voiceModel.$notificationFinalizeConfirmRequest) { req in
+            guard let req else { return }
+            pendingFinalizeConfirm = req
+            showFinalizeConfirmSheet = true
+        }
+
+        // Gallery selection
         .onChange(of: galleryItems, initial: false) { _, items in
             guard !items.isEmpty else { return }
             Task { await handleGallerySelection(items) }
         }
+
+        // Camera
         .sheet(isPresented: $showCamera) {
             if UIImagePickerController.isSourceTypeAvailable(.camera) {
                 CameraImagePicker(sourceType: .camera) { img in
@@ -100,6 +134,8 @@ struct NotificationsView: View {
                 .padding()
             }
         }
+
+        // QR
         .sheet(isPresented: $showQRScanner) {
             QRCodeScannerView {
                 let raw = $0
@@ -114,8 +150,140 @@ struct NotificationsView: View {
             }
             .ignoresSafeArea()
         }
+
+        // Photo viewer
         .sheet(item: $selectedPhoto) { photo in
             photoViewerSheet(photo)
+        }
+
+        // Logs sheet
+        .sheet(isPresented: $showLogsSheet) {
+            LogsSheetView(logs: voiceModel.logs)
+        }
+
+        // Field correction sheet
+        .sheet(isPresented: $showFieldCorrectSheet) {
+            NavigationStack {
+                Form {
+                    Section("Correct value") {
+                        TextField("Value", text: $correctedValue)
+                            .textInputAutocapitalization(.characters)
+                            .autocorrectionDisabled()
+                    }
+
+                    if let req = pendingFieldConfirm {
+                        Section("Field") {
+                            Text(req.field)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .navigationTitle("Correct field")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Cancel") { showFieldCorrectSheet = false }
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Apply") {
+                            guard let req = pendingFieldConfirm else { return }
+                            Task {
+                                await voiceModel.confirmNotificationField(
+                                    requestId: req.requestId,
+                                    accept: true,
+                                    correctedValue: correctedValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                                )
+                                await MainActor.run {
+                                    showFieldCorrectSheet = false
+                                    showFieldConfirmDialog = false
+                                    pendingFieldConfirm = nil
+                                    voiceModel.clearNotificationFieldConfirmRequest()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Field confirmation dialog (Confirm / Reject / Correct)
+        .confirmationDialog(
+            fieldConfirmTitle,
+            isPresented: $showFieldConfirmDialog,
+            titleVisibility: .visible
+        ) {
+            Button("Confirm") {
+                guard let req = pendingFieldConfirm else { return }
+                Task {
+                    await voiceModel.confirmNotificationField(requestId: req.requestId, accept: true, correctedValue: nil)
+                    await MainActor.run {
+                        pendingFieldConfirm = nil
+                        voiceModel.clearNotificationFieldConfirmRequest()
+                    }
+                }
+            }
+
+            Button("Correct…") {
+                showFieldCorrectSheet = true
+            }
+
+            Button("Reject", role: .destructive) {
+                guard let req = pendingFieldConfirm else { return }
+                Task {
+                    await voiceModel.confirmNotificationField(requestId: req.requestId, accept: false, correctedValue: nil)
+                    await MainActor.run {
+                        pendingFieldConfirm = nil
+                        voiceModel.clearNotificationFieldConfirmRequest()
+                    }
+                }
+            }
+
+            Button("Cancel", role: .cancel) {
+                // keep request pending; user can confirm later
+            }
+        } message: {
+            if let req = pendingFieldConfirm {
+                Text(req.readback)
+            } else {
+                Text("Confirm the value.")
+            }
+        }
+
+        // Finalize confirmation sheet
+        .sheet(isPresented: $showFinalizeConfirmSheet) {
+            FinalizeConfirmationSheet(
+                request: pendingFinalizeConfirm,
+                fallbackDraft: wizard.draft,
+                uploadInFlight: voiceModel.notificationUploadInFlight
+            ) { accept in
+                guard let req = pendingFinalizeConfirm else {
+                    showFinalizeConfirmSheet = false
+                    return
+                }
+                Task {
+                    await voiceModel.confirmNotificationFinalize(requestId: req.requestId, accept: accept)
+                    await MainActor.run {
+                        showFinalizeConfirmSheet = false
+                        pendingFinalizeConfirm = nil
+                        voiceModel.clearNotificationFinalizeConfirmRequest()
+                    }
+                }
+            }
+        }
+    }
+
+    private var fieldConfirmTitle: String {
+        guard let req = pendingFieldConfirm else { return "Confirm" }
+        return "Confirm \(friendlyFieldName(req.field))"
+    }
+
+    private func friendlyFieldName(_ f: String) -> String {
+        switch f {
+        case "equipmentID": return "Equipment ID"
+        case "functionalLocation": return "Functional Location"
+        case "plant": return "Plant"
+        case "priority": return "Priority"
+        default: return f
         }
     }
 
@@ -153,85 +321,88 @@ struct NotificationsView: View {
     // MARK: - UI
 
     private var headerStatusRow: some View {
-        HStack {
+        HStack(spacing: 12) {
             Image(systemName: voiceModel.isRunning ? "waveform.circle.fill" : "dot.circle")
-                .foregroundColor(voiceModel.isRunning ? .green : .gray)
+                .foregroundColor(voiceModel.isRunning ? .green : .secondary)
                 .font(.system(size: 22, weight: .bold))
 
-            Text(voiceModel.status)
-                .font(.title3.bold())
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Notifications")
+                    .font(.title3.bold())
+
+                Text(voiceModel.status)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
 
             Spacer()
 
-            Text("Notifications")
-                .font(.headline)
-                .foregroundColor(.secondary)
+            missingRequiredPill
+
+            Button { showLogsSheet = true } label: {
+                Image(systemName: "doc.plaintext")
+                    .font(.system(size: 16, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .padding(8)
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
     }
 
-    private var assistantCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Assistant").font(.headline)
+    private var missingRequiredPill: some View {
+        let missing = voiceModel.notificationMissingRequired.count
+        let isReady = (missing == 0)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    if voiceModel.isAIPlaying && !voiceModel.currentTranscript.isEmpty {
-                        Text(voiceModel.currentTranscript)
-                            .italic()
-                            .foregroundColor(.secondary)
-                    }
-
-                    Text(voiceModel.fullResponseText.isEmpty ? "—" : voiceModel.fullResponseText)
-                        .font(.body)
-                }
-                .padding(.vertical, 4)
-            }
-            .frame(height: 140)
-
-            if !voiceModel.notificationLastActionSummary.isEmpty {
-                Divider()
-                Text(voiceModel.notificationLastActionSummary)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding()
-        .background(.thinMaterial)
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        return Text(isReady ? "Ready" : "\(missing) missing")
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .foregroundColor(isReady ? .green : .orange)
+            .background((isReady ? Color.green : Color.orange).opacity(0.12))
+            .clipShape(Capsule())
     }
 
-    private var logsCard: some View {
+    private var uploadStatusBanner: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Logs")
-                .font(.caption.bold())
-                .foregroundColor(.secondary)
-
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 4) {
-                    ForEach(voiceModel.logs.indices, id: \.self) { idx in
-                        Text(voiceModel.logs[idx])
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
+            if voiceModel.notificationUploadInFlight {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text("Uploading / updating…")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                    Spacer()
                 }
-                .padding(.vertical, 4)
             }
-            .frame(height: 140)
+
+            if let err = voiceModel.notificationUploadError, !err.isEmpty {
+                HStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.red)
+                    Text(err)
+                        .font(.footnote)
+                        .foregroundColor(.red)
+                    Spacer()
+                }
+            }
         }
-        .padding()
-        .background(.thinMaterial)
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.07), radius: 6, x: 0, y: 3)
+        .padding(12)
+        .background(Color(.systemBackground))
+        .cornerRadius(14)
+        .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
     }
 
     private var manualEntryCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Manual Field Entry").font(.headline)
+                Text("Manual field entry")
+                    .font(.headline)
                 Spacer()
-                Button("Flush") { flushPendingFieldSync() }
-                    .buttonStyle(.bordered)
+                Button { flushPendingFieldSync() } label: {
+                    Label("Flush", systemImage: "arrow.up.circle")
+                }
+                .buttonStyle(.bordered)
             }
 
             fieldRow(title: "Notification Type") {
@@ -242,11 +413,13 @@ struct NotificationsView: View {
                     .textFieldStyle(.roundedBorder)
             }
 
-            fieldRow(title: "Short Text (multi-line)") {
+            fieldRow(title: "Short Text") {
                 TextEditor(text: syncedBinding(field: "shortText", keyPath: \.shortText))
-                    .frame(minHeight: 100)
+                    .frame(minHeight: 110)
                     .padding(8)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.secondary.opacity(0.25)))
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .cornerRadius(10)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.secondary.opacity(0.18)))
             }
 
             fieldRow(title: "Priority") {
@@ -289,72 +462,24 @@ struct NotificationsView: View {
             }
         }
         .padding()
-        .background(.thinMaterial)
+        .background(Color(.systemBackground))
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 5)
     }
 
     private func fieldRow(title: String, @ViewBuilder content: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.caption.bold())
+                .font(.caption.weight(.semibold))
                 .foregroundColor(.secondary)
             content()
         }
     }
 
-    private var attachmentsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Attachments").font(.headline)
-                Spacer()
-
-                Button {
-                    pendingVoiceRequestId = nil
-                    showCamera = true
-                } label: {
-                    Label("Camera", systemImage: "camera")
-                }
-                .buttonStyle(.bordered)
-
-                PhotosPicker(selection: $galleryItems, maxSelectionCount: 5, matching: .images) {
-                    Label("Gallery", systemImage: "photo.on.rectangle")
-                }
-                .buttonStyle(.bordered)
-
-                Button {
-                    pendingQRRequestId = nil
-                    showQRScanner = true
-                } label: {
-                    Label("Scan QR", systemImage: "qrcode.viewfinder")
-                }
-                .buttonStyle(.bordered)
-            }
-
-            if voiceModel.notificationUploadInFlight {
-                HStack(spacing: 8) {
-                    ProgressView()
-                    Text("Uploading / updating…")
-                        .foregroundColor(.secondary)
-                }
-            }
-
-            if let err = voiceModel.notificationUploadError, !err.isEmpty {
-                Text(err)
-                    .foregroundColor(.red)
-                    .font(.subheadline)
-            }
-        }
-        .padding()
-        .background(.thinMaterial)
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
-    }
-
     private var draftPhotosCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Draft Photos").font(.headline)
+                Text("Draft photos").font(.headline)
                 Spacer()
                 Text("\(wizard.draft.photos.count)")
                     .foregroundColor(.secondary)
@@ -377,18 +502,18 @@ struct NotificationsView: View {
             }
         }
         .padding()
-        .background(.thinMaterial)
+        .background(Color(.systemBackground))
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 5)
     }
 
-    // NEW: Vision Insights UI
     private var visionInsightsCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Vision Insights").font(.headline)
+                Text("Vision insights").font(.headline)
                 Spacer()
-                Text("\(voiceModel.notificationVisionResults.count)")
+                Text(voiceModel.notificationVisionResults.count.description)
+
                     .foregroundColor(.secondary)
                     .font(.subheadline)
             }
@@ -403,10 +528,12 @@ struct NotificationsView: View {
                     ForEach(Array(top)) { r in
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                Text(r.filename).font(.subheadline.bold())
+                                Image(systemName: r.ok ? "sparkles" : "exclamationmark.triangle.fill")
+                                    .foregroundColor(r.ok ? .accentColor : .orange)
+                                Text(r.filename).font(.subheadline.weight(.semibold))
                                 Spacer()
                                 if let c = r.confidence {
-                                    Text(String(format: "conf %.2f", c))
+                                    Text(String(format: "%.0f%%", (c * 100.0)))
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -417,7 +544,7 @@ struct NotificationsView: View {
                                     Text(summary).font(.caption)
                                 }
                                 if let labels = r.labels, !labels.isEmpty {
-                                    Text("Labels: \(labels.joined(separator: ", "))")
+                                    Text("Labels: \(labels.prefix(10).joined(separator: ", "))")
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
                                 }
@@ -436,17 +563,17 @@ struct NotificationsView: View {
                                     .foregroundColor(.orange)
                             }
                         }
-                        .padding(10)
-                        .background(Color.black.opacity(0.04))
-                        .cornerRadius(12)
+                        .padding(12)
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .cornerRadius(14)
                     }
                 }
             }
         }
         .padding()
-        .background(.thinMaterial)
+        .background(Color(.systemBackground))
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 5)
     }
 
     private func photoThumb(_ photo: NotificationPhoto) -> some View {
@@ -456,7 +583,7 @@ struct NotificationsView: View {
             Button { selectedPhoto = photo } label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.black.opacity(0.06))
+                        .fill(Color(.secondarySystemGroupedBackground))
                         .frame(width: 120, height: 90)
 
                     if let url {
@@ -544,7 +671,19 @@ struct NotificationsView: View {
 
     private var notificationDraftSummaryCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Notification Draft").font(.headline)
+            HStack {
+                Text("Notification draft").font(.headline)
+                Spacer()
+
+                Button {
+                    flushPendingFieldSync()
+                    Task { await voiceModel.requestFinalizeGate(source: "ui") }
+                } label: {
+                    Label("Review & Finalize", systemImage: "checkmark.seal")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(voiceModel.notificationUploadInFlight)
+            }
 
             let missing = voiceModel.notificationMissingRequired
             if !missing.isEmpty {
@@ -554,6 +693,13 @@ struct NotificationsView: View {
             } else {
                 Text("Required fields complete.")
                     .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            if !voiceModel.notificationLastActionSummary.isEmpty {
+                Divider()
+                Text(voiceModel.notificationLastActionSummary)
+                    .font(.footnote)
                     .foregroundColor(.secondary)
             }
 
@@ -567,17 +713,18 @@ struct NotificationsView: View {
             gridRow("Func. Location", wizard.draft.functionalLocation ?? "—")
             gridRow("Plant", wizard.draft.plant ?? "—")
             gridRow("Reported By", wizard.draft.reportedBy ?? "—")
+            gridRow("Photos", "\(wizard.draft.photos.count)")
         }
         .padding()
-        .background(.thinMaterial)
+        .background(Color(.systemBackground))
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 5)
     }
 
     private func gridRow(_ key: String, _ val: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Text(key)
-                .font(.caption.bold())
+                .font(.caption.weight(.semibold))
                 .foregroundColor(.secondary)
                 .frame(width: 110, alignment: .leading)
 
@@ -601,13 +748,15 @@ struct NotificationsView: View {
                     .font(.system(.footnote, design: .monospaced))
                     .frame(minHeight: 220)
                     .disabled(true)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.secondary.opacity(0.2)))
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .cornerRadius(10)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.secondary.opacity(0.18)))
             }
         }
         .padding()
-        .background(.thinMaterial)
+        .background(Color(.systemBackground))
         .cornerRadius(16)
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 5)
     }
 
     private var startStopButton: some View {
@@ -617,16 +766,64 @@ struct NotificationsView: View {
         }) {
             ZStack {
                 Circle()
-                    .fill(voiceModel.isRunning ? Color.red.gradient : Color.blue.gradient)
-                    .frame(width: 84, height: 84)
-                    .shadow(color: (voiceModel.isRunning ? Color.red : Color.blue).opacity(0.35),
-                            radius: 10, x: 0, y: 6)
+                    .fill(voiceModel.isRunning ? Color.red.opacity(0.9) : Color.accentColor.opacity(0.95))
+                    .frame(width: 78, height: 78)
+                    .shadow(color: .black.opacity(0.18), radius: 10, x: 0, y: 6)
 
                 Image(systemName: voiceModel.isRunning ? "stop.fill" : "mic.fill")
                     .foregroundColor(.white)
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.system(size: 30, weight: .bold))
             }
         }
+    }
+
+    private var bottomAttachmentBar: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 10) {
+
+                Button {
+                    pendingVoiceRequestId = nil
+                    showCamera = true
+                } label: {
+                    bottomActionLabel(title: "Take photo", systemImage: "camera")
+                }
+                .buttonStyle(.plain)
+                .disabled(voiceModel.notificationUploadInFlight)
+
+                PhotosPicker(selection: $galleryItems, maxSelectionCount: 5, matching: .images) {
+                    bottomActionLabel(title: "Gallery", systemImage: "photo.on.rectangle")
+                }
+                .buttonStyle(.plain)
+                .disabled(voiceModel.notificationUploadInFlight)
+
+                Button {
+                    pendingQRRequestId = nil
+                    showQRScanner = true
+                } label: {
+                    bottomActionLabel(title: "Scan QR", systemImage: "qrcode.viewfinder")
+                }
+                .buttonStyle(.plain)
+                .disabled(voiceModel.notificationUploadInFlight)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial)
+        .overlay(Divider(), alignment: .top)
+    }
+
+    private func bottomActionLabel(title: String, systemImage: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.system(size: 15, weight: .semibold))
+            Text(title)
+                .font(.footnote.weight(.semibold))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(Color.accentColor.opacity(0.12))
+        .foregroundColor(.primary)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Field binding / syncing
@@ -696,8 +893,6 @@ struct NotificationsView: View {
     }
 
     private func handleGallerySelection(_ items: [PhotosPickerItem]) async {
-        defer { Task { @MainActor in self.galleryItems = [] } }
-
         for item in items {
             do {
                 if let data = try await item.loadTransferable(type: Data.self),
@@ -706,6 +901,7 @@ struct NotificationsView: View {
                 }
             } catch { }
         }
+        await MainActor.run { self.galleryItems = [] }
     }
 
     private func handleScannedQRCode(_ raw: String) async {
@@ -724,6 +920,132 @@ struct NotificationsView: View {
         }
 
         await voiceModel.applyQRCode(raw: trimmed)
+    }
+}
+
+private struct LogsSheetView: View {
+    let logs: [String]
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(logs.enumerated()), id: \.offset) { _, line in
+                        Text(line)
+                            .font(.caption.monospaced())
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(16)
+            }
+            .navigationTitle("Logs")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+private struct FinalizeConfirmationSheet: View {
+    let request: NotificationFinalizeConfirmRequest?
+    let fallbackDraft: NotificationDraft
+    let uploadInFlight: Bool
+    let onDone: (Bool) -> Void
+
+    var body: some View {
+        let draft = request?.draft ?? fallbackDraft
+        let missing = request?.missingRequired ?? []
+
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+
+                    Text(request?.reason ?? "Review before finalizing")
+                        .font(.title3.bold())
+
+                    if !missing.isEmpty {
+                        HStack(spacing: 10) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            Text("Missing required: \(missing.joined(separator: ", "))")
+                                .font(.footnote)
+                                .foregroundColor(.orange)
+                        }
+                        .padding(12)
+                        .background(Color.orange.opacity(0.10))
+                        .cornerRadius(12)
+                    } else {
+                        HStack(spacing: 10) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundColor(.green)
+                            Text("All required fields appear complete.")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(12)
+                        .background(Color.green.opacity(0.10))
+                        .cornerRadius(12)
+                    }
+
+                    GroupBox("Notification data") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            row("ID", draft.notificationId ?? "—")
+                            row("Type", draft.notificationType ?? "—")
+                            row("Short Text", draft.shortText ?? "—")
+                            row("Priority", draft.priority ?? "—")
+                            row("Equipment", draft.equipmentID ?? "—")
+                            row("Functional Location", draft.functionalLocation ?? "—")
+                            row("Plant", draft.plant ?? "—")
+                            row("Reported By", draft.reportedBy ?? "—")
+                            row("Photos", "\(draft.photos.count)")
+                        }
+                        .font(.footnote)
+                    }
+
+                    Text("Confirming will finalize and persist the notification on the server.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
+                .padding(16)
+            }
+            .navigationTitle("Confirm finalize")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") { onDone(false) }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        onDone(true)
+                    } label: {
+                        if uploadInFlight {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                Text("Finalizing…")
+                            }
+                        } else {
+                            Text("Confirm")
+                        }
+                    }
+                    .disabled(uploadInFlight || !missing.isEmpty)
+                }
+            }
+        }
+    }
+
+    private func row(_ k: String, _ v: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(k)
+                .foregroundColor(.secondary)
+                .frame(width: 140, alignment: .leading)
+            Text(v.isEmpty ? "—" : v)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }
 
@@ -751,20 +1073,6 @@ private enum QRPayloadParser {
                     put("notificationType", n["notification_type"])
                     put("priority", n["priority"])
                     put("shortText", n["short_text"])
-                    return out
-                }
-
-                if let schema = obj["schema"] as? String, schema == "sap.pm.qr.v1" {
-                    if let asset = obj["asset"] as? [String: Any] {
-                        put("equipmentID", asset["equipment_id"] ?? asset["equipmentID"])
-                        put("functionalLocation", asset["functional_location"] ?? asset["functionalLocation"] ?? asset["floc"])
-                        put("plant", asset["plant"] ?? asset["werks"])
-                    }
-                    if let defaults = obj["defaults"] as? [String: Any] {
-                        put("notificationType", defaults["notification_type"] ?? defaults["notificationType"])
-                        put("priority", defaults["priority"])
-                        put("shortText", defaults["short_text"] ?? defaults["shortText"])
-                    }
                     return out
                 }
 

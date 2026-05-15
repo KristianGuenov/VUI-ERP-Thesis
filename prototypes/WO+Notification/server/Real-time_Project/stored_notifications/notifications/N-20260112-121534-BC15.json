@@ -1,0 +1,25 @@
+{
+  "Notification": {
+    "notification_id": "N-20260112-121534-BC15",
+    "mode": "minimal",
+    "created_at": "2026-01-12T10:15:34.750Z",
+    "notification_type": "problem",
+    "short_text": "Cat lying on floor near exercise equipment",
+    "priority": "2",
+    "equipment_id": "",
+    "functional_location": "FL-100",
+    "plant": "1000",
+    "reported_by": "",
+    "attachments": [
+      {
+        "filename": "photo_1768212936.jpg",
+        "path": "stored_notifications/photos/photo_1768212936.jpg",
+        "mimeType": "image/jpeg",
+        "sizeBytes": 297620,
+        "note": "Camera/gallery capture",
+        "source": "manual",
+        "addedAt": "2026-01-12T10:15:34.755Z"
+      }
+    ]
+  }
+}

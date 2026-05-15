@@ -2,9 +2,11 @@
   "name": "asr-project",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "Server/index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "tsx Server/index.ts",
+    "dev": "tsx Server/index.ts",
+    "analyze:kpis": "tsx experiment/analyzeKpis.ts"
   },
   "keywords": [],
   "author": "",

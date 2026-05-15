@@ -11,7 +11,15 @@ import "dotenv/config";
 
 import { workOrderTools } from "./workOrderTools.js";
 import { executeWorkOrderFunction } from "./executeWorkOrderFunction.js";
-import { getWorkOrder, resetWorkOrders } from "./workOrders.js";
+import {
+  getWorkOrder,
+  listWorkOrders,
+  resetWorkOrders,
+  setExperimentWorkOrders
+} from "./workOrders.js";
+import { logEvent, saveFinalState, safeClone } from "./experimentLogger.js";
+import fs from "fs";
+import path from "path";
 
 // Avoid MaxListeners warnings
 events.EventEmitter.defaultMaxListeners = 25;
@@ -25,6 +33,9 @@ let clients = [];
 
 let lastAudioBytes = 0;
 let responsePending = false;
+
+let activeTrial = null;
+let awaitingFinalAcknowledgement = false;
 
 /* -------------------------------------------------------------------------- */
 /*                               Helper funcs                                 */
@@ -42,6 +53,95 @@ function broadcastToClients(obj) {
   const text = JSON.stringify(obj);
   for (const res of clients) {
     res.write(`data: ${text}\n\n`);
+  }
+}
+
+function loadCommonScenarios() {
+  const filePath = path.resolve("experiment", "scenarios", "common_scenarios.json");
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Missing scenario file: ${filePath}`);
+  }
+
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+function getScenarioById(scenarioId) {
+  const scenarios = loadCommonScenarios();
+  const scenario = scenarios.find((item) => item.scenarioId === scenarioId);
+
+  if (!scenario) {
+    throw new Error(`Scenario ${scenarioId} not found in common_scenarios.json`);
+  }
+
+  return scenario;
+}
+
+function trialMetadata(extra = {}) {
+  if (!activeTrial) return extra;
+
+  return {
+    trialId: activeTrial.trialId,
+    condition: activeTrial.condition,
+    prototype: activeTrial.prototype,
+    environment: activeTrial.environment,
+    scenarioId: activeTrial.scenarioId,
+    repetition: activeTrial.repetition,
+    ...extra
+  };
+}
+
+function logTrialEvent(eventType, extra = {}) {
+  if (!activeTrial) return null;
+  return logEvent(trialMetadata({ eventType, ...extra }));
+}
+
+function extractEventText(parsed) {
+  const candidates = [
+    parsed?.delta,
+    parsed?.text,
+    parsed?.transcript,
+    parsed?.item?.text,
+    parsed?.item?.transcript,
+    parsed?.response?.text
+  ].filter((value) => typeof value === "string");
+
+  if (Array.isArray(parsed?.item?.content)) {
+    for (const content of parsed.item.content) {
+      if (typeof content?.text === "string") candidates.push(content.text);
+      if (typeof content?.transcript === "string") candidates.push(content.transcript);
+    }
+  }
+
+  return candidates.join(" ").trim();
+}
+
+function maybeLogConfirmationEvents(parsed) {
+  if (!activeTrial) return;
+
+  const observedText = extractEventText(parsed);
+  if (!observedText) return;
+
+  const lower = observedText.toLowerCase();
+
+  if (
+    lower.includes("confirm") &&
+    (lower.includes("yes or no") || lower.includes("yes/no") || lower.includes("please confirm"))
+  ) {
+    logTrialEvent("confirmation_prompted", {
+      source: "assistant_text_detected",
+      text: observedText
+    });
+  }
+
+  if (
+    (parsed.type || "").includes("input_audio_transcription") &&
+    (/\byes\b/.test(lower) || lower.includes("yes confirm") || lower.includes("confirm"))
+  ) {
+    logTrialEvent("confirmation_received", {
+      source: "user_transcript_detected",
+      text: observedText
+    });
   }
 }
 
@@ -109,6 +209,7 @@ MANDATORY CONFIRMATION RULES (SENSITIVE ACTIONS)
 Before calling ANY of these tools:
 - report_time
 - add_time_to_work_order
+- close_operation
 - complete_work_order (including force=true)
 - end_task_session
 - end_assistant_session
@@ -151,13 +252,23 @@ AUTO-DETAILS
 
     aiSocket.on("error", (err) => {
       console.error("WebSocket error:", err.message);
+      logTrialEvent("trial_failure_observed", {
+        failureType: "websocket_error",
+        fatal: true,
+        error: err.message
+      });
     });
 
     aiSocket.on("close", () => {
       console.log("AI socket closed, reconnecting...");
+      logTrialEvent("trial_failure_observed", {
+        failureType: "websocket_closed",
+        fatal: true
+      });
       aiSocket = null;
       responsePending = false;
       lastAudioBytes = 0;
+      awaitingFinalAcknowledgement = false;
       setTimeout(connectRealtime, 3000);
     });
 
@@ -177,12 +288,30 @@ AUTO-DETAILS
 
       const type = parsed.type;
 
+      maybeLogConfirmationEvents(parsed);
+
       if (type === "error") {
         console.error("Model error:", parsed.error);
+        logTrialEvent("trial_failure_observed", {
+          failureType: "model_error",
+          fatal: true,
+          error: parsed.error ?? null
+        });
       }
 
       if (type === "response.done") {
         responsePending = false;
+
+        logTrialEvent("response_done", {
+          responseId: parsed.response?.id ?? parsed.response_id ?? null
+        });
+
+        if (awaitingFinalAcknowledgement) {
+          logTrialEvent("final_acknowledgement_completed", {
+            responseId: parsed.response?.id ?? parsed.response_id ?? null
+          });
+          awaitingFinalAcknowledgement = false;
+        }
       }
 
       /* ------------------------------------------------------------------ */
@@ -205,6 +334,12 @@ AUTO-DETAILS
           args = JSON.parse(parsed.arguments);
         } catch (err) {
           console.log("❌ Error parsing arguments:", err);
+          logTrialEvent("trial_failure_observed", {
+            failureType: "tool_arguments_parse_error",
+            fatal: true,
+            toolName: parsed.name,
+            error: err.message
+          });
           return;
         }
 
@@ -215,11 +350,30 @@ AUTO-DETAILS
 
         console.log("Arguments (normalized):", args);
 
+        logTrialEvent("tool_call_requested", {
+          toolName: parsed.name,
+          args: safeClone(args)
+        });
+
         // Validate work order exists BEFORE executing tool (when applicable)
         if (args.order_id) {
           const wo = getWorkOrder(args.order_id);
           if (!wo) {
             console.log(`❌ Work order ${args.order_id} does not exist. Skipping tool call.`);
+
+            logTrialEvent("operation_rejected", {
+              toolName: parsed.name,
+              args: safeClone(args),
+              reason: "WORK_ORDER_NOT_FOUND",
+              order_id: args.order_id
+            });
+
+            logTrialEvent("trial_failure_observed", {
+              failureType: "work_order_not_found",
+              fatal: false,
+              toolName: parsed.name,
+              order_id: args.order_id
+            });
 
             aiSocket.send(JSON.stringify({
               type: "response.create",
@@ -240,6 +394,30 @@ Tell the user clearly:
 
         const result = await executeWorkOrderFunction(parsed.name, args);
 
+        logTrialEvent("tool_call_result", {
+          toolName: parsed.name,
+          args: safeClone(args),
+          ok: Boolean(result?.ok),
+          mutated: Boolean(result?.mutated),
+          resultType: result?.type ?? null,
+          error: result?.error ?? null
+        });
+
+        if (result?.mutated === true) {
+          logTrialEvent("operation_executed", {
+            toolName: parsed.name,
+            args: safeClone(args),
+            resultType: result?.type ?? null
+          });
+        } else if (result?.ok === false) {
+          logTrialEvent("operation_rejected", {
+            toolName: parsed.name,
+            args: safeClone(args),
+            reason: result?.error ?? "UNKNOWN_REJECTION",
+            result: safeClone(result)
+          });
+        }
+
         console.log("→ Result:");
         console.log(JSON.stringify(result, null, 2));
 
@@ -254,6 +432,10 @@ Tell the user clearly:
         }
 
         // Build assistant response with strict mutation rule
+        if (activeTrial) {
+          awaitingFinalAcknowledgement = true;
+        }
+
         aiSocket.send(JSON.stringify({
           type: "response.create",
           response: {
@@ -290,6 +472,11 @@ Do not claim any change that is not in the tool result.
 
   } catch (err) {
     console.error("Failed to connect:", err.message);
+    logTrialEvent("trial_failure_observed", {
+      failureType: "realtime_connection_failed",
+      fatal: true,
+      error: err.message
+    });
     setTimeout(connectRealtime, 5000);
   }
 }
@@ -301,14 +488,34 @@ Do not claim any change that is not in the tool result.
 app.post("/audio", (req, res) => {
   const { base64 } = req.body;
 
-  if (!aiSocket || aiSocket.readyState !== WebSocket.OPEN)
+  if (!aiSocket || aiSocket.readyState !== WebSocket.OPEN) {
+    logTrialEvent("trial_failure_observed", {
+      failureType: "ai_not_connected",
+      fatal: true,
+      route: "/audio"
+    });
     return res.status(503).send("AI not connected");
+  }
 
-  if (!base64)
+  if (!base64) {
+    logTrialEvent("trial_failure_observed", {
+      failureType: "empty_audio",
+      fatal: false,
+      route: "/audio"
+    });
     return res.status(400).json({ ok: false, error: "empty_audio" });
+  }
 
   const bytes = Buffer.from(base64, "base64").length;
   lastAudioBytes += bytes;
+
+  if (activeTrial && !activeTrial.serverAudioStartedAt) {
+    activeTrial.serverAudioStartedAt = new Date().toISOString();
+    logTrialEvent("audio_first_packet_received", {
+      bytes,
+      totalAudioBytes: lastAudioBytes
+    });
+  }
 
   aiSocket.send(JSON.stringify({
     type: "input_audio_buffer.append",
@@ -319,14 +526,37 @@ app.post("/audio", (req, res) => {
 });
 
 app.post("/respond", (req, res) => {
-  if (!aiSocket || aiSocket.readyState !== WebSocket.OPEN)
+  if (!aiSocket || aiSocket.readyState !== WebSocket.OPEN) {
+    logTrialEvent("trial_failure_observed", {
+      failureType: "ai_not_connected",
+      fatal: true,
+      route: "/respond"
+    });
     return res.status(503).send("AI not connected");
+  }
 
-  if (responsePending)
+  if (responsePending) {
+    logTrialEvent("trial_failure_observed", {
+      failureType: "response_in_progress",
+      fatal: false,
+      route: "/respond"
+    });
     return res.status(429).json({ ok: false, error: "response_in_progress" });
+  }
 
-  if (lastAudioBytes < 4800)
+  if (lastAudioBytes < 4800) {
+    logTrialEvent("trial_failure_observed", {
+      failureType: "audio_too_short",
+      fatal: false,
+      route: "/respond",
+      totalAudioBytes: lastAudioBytes
+    });
     return res.status(400).json({ ok: false, error: "audio_too_short" });
+  }
+
+  logTrialEvent("audio_committed", {
+    totalAudioBytes: lastAudioBytes
+  });
 
   aiSocket.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
 
@@ -340,10 +570,150 @@ app.post("/respond", (req, res) => {
     }
   }));
 
+  logTrialEvent("response_requested");
+
   responsePending = true;
   lastAudioBytes = 0;
 
   res.json({ ok: true });
+});
+
+/* -------------------------------------------------------------------------- */
+/*                          EXPERIMENT API ROUTES                             */
+/* -------------------------------------------------------------------------- */
+
+app.post("/experiment/start-trial", (req, res) => {
+  try {
+    const { trialId, condition, prototype, environment, scenarioId, repetition } = req.body;
+
+    if (!trialId || !condition || !prototype || !environment || !scenarioId || repetition == null) {
+      return res.status(400).json({
+        ok: false,
+        error: "missing_required_trial_metadata",
+        required: ["trialId", "condition", "prototype", "environment", "scenarioId", "repetition"]
+      });
+    }
+
+    const scenario = getScenarioById(scenarioId);
+
+    if (!scenario.initialWorkOrder) {
+      return res.status(400).json({
+        ok: false,
+        error: "scenario_missing_initial_work_order",
+        scenarioId
+      });
+    }
+
+    setExperimentWorkOrders([scenario.initialWorkOrder]);
+
+    lastAudioBytes = 0;
+    responsePending = false;
+    awaitingFinalAcknowledgement = false;
+
+    activeTrial = {
+      trialId,
+      condition,
+      prototype,
+      environment,
+      scenarioId,
+      repetition,
+      status: "running",
+      workOrderId: scenario.workOrderId,
+      serverAudioStartedAt: null,
+      finalAcknowledgementAt: null
+    };
+
+    logTrialEvent("trial_started", {
+      workOrderId: scenario.workOrderId,
+      numericHeavy: Boolean(scenario.numericHeavy),
+      includedInConfirmationCompliance: Boolean(scenario.includedInConfirmationCompliance)
+    });
+
+    res.json({ ok: true, activeTrial });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post("/experiment/end-trial", (req, res) => {
+  try {
+    if (!activeTrial) {
+      return res.status(400).json({ ok: false, error: "no_active_trial" });
+    }
+
+    const scenario = getScenarioById(activeTrial.scenarioId);
+    const workOrder = scenario.workOrderId ? getWorkOrder(scenario.workOrderId) : null;
+
+    const finalStatePath = saveFinalState(activeTrial.trialId, {
+      trial: safeClone(activeTrial),
+      workOrder: workOrder ? safeClone(workOrder) : null,
+      allWorkOrders: safeClone(listWorkOrders())
+    });
+
+    logTrialEvent("trial_completed", {
+      finalStatePath
+    });
+
+    const completedTrial = activeTrial;
+    activeTrial = null;
+    awaitingFinalAcknowledgement = false;
+    lastAudioBytes = 0;
+    responsePending = false;
+
+    res.json({ ok: true, trial: completedTrial, finalStatePath });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post("/experiment/fail-trial", (req, res) => {
+  try {
+    if (!activeTrial) {
+      return res.status(400).json({ ok: false, error: "no_active_trial" });
+    }
+
+    const { failureType = "manual_failure", reason = "Trial marked as failed manually" } = req.body || {};
+    const scenario = getScenarioById(activeTrial.scenarioId);
+    const workOrder = scenario.workOrderId ? getWorkOrder(scenario.workOrderId) : null;
+
+    const finalStatePath = saveFinalState(activeTrial.trialId, {
+      trial: safeClone(activeTrial),
+      failureType,
+      reason,
+      workOrder: workOrder ? safeClone(workOrder) : null,
+      allWorkOrders: safeClone(listWorkOrders())
+    });
+
+    logTrialEvent("trial_failed", {
+      failureType,
+      reason,
+      finalStatePath
+    });
+
+    const failedTrial = activeTrial;
+    activeTrial = null;
+    awaitingFinalAcknowledgement = false;
+    lastAudioBytes = 0;
+    responsePending = false;
+
+    res.json({ ok: true, trial: failedTrial, finalStatePath });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.get("/experiment/current-trial", (req, res) => {
+  res.json({ ok: true, activeTrial });
+});
+
+app.post("/experiment/reset", (req, res) => {
+  activeTrial = null;
+  awaitingFinalAcknowledgement = false;
+  lastAudioBytes = 0;
+  responsePending = false;
+  resetWorkOrders();
+
+  res.json({ ok: true, status: "experiment_reset" });
 });
 
 /* -------------------------------------------------------------------------- */

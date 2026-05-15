@@ -88,7 +88,7 @@ export const workOrderTools = [
     type: "function",
     name: "report_time",
     description:
-      "Report minutes worked for a specific operation in the work order. (Sensitive action: requires user confirmation.)",
+      "Report minutes worked for a specific operation in the work order. Sensitive action: requires user confirmation.",
     parameters: {
       type: "object",
       properties: {
@@ -103,7 +103,7 @@ export const workOrderTools = [
     type: "function",
     name: "add_time_to_work_order",
     description:
-      "Add minutes at work-order level (not a specific operation). If order_id is omitted, uses the current work order. (Sensitive action: requires user confirmation.)",
+      "Add minutes at work-order level, not a specific operation. If order_id is omitted, uses the current work order. Sensitive action: requires user confirmation.",
     parameters: {
       type: "object",
       properties: {
@@ -133,6 +133,20 @@ export const workOrderTools = [
       required: ["order_id", "operation_id"]
     }
   },
+  {
+    type: "function",
+    name: "close_operation",
+    description:
+      "Close a specific operation within a work order. Sensitive action: requires user confirmation.",
+    parameters: {
+      type: "object",
+      properties: {
+        order_id: { type: "string" },
+        operation_id: { type: "string" }
+      },
+      required: ["order_id", "operation_id"]
+    }
+  },
 
   // ------------------------------------------------------------
   // COMPLETION / CLOSING
@@ -153,7 +167,7 @@ export const workOrderTools = [
     type: "function",
     name: "complete_work_order",
     description:
-      "Complete/close a work order. If force=true, open operations are auto-completed. (Sensitive action: requires user confirmation.)",
+      "Complete/close a work order. If force=true, open operations are auto-completed. Sensitive action: requires user confirmation.",
     parameters: {
       type: "object",
       properties: {
@@ -186,7 +200,7 @@ export const workOrderTools = [
   {
     type: "function",
     name: "assign_work_order",
-    description: "Assign a work order to a technician (updates current technician context in the prototype).",
+    description: "Assign a work order to a technician.",
     parameters: {
       type: "object",
       properties: {
@@ -204,7 +218,7 @@ export const workOrderTools = [
     type: "function",
     name: "get_next_task",
     description:
-      "Get the next work order for a technician (sorted by due_date, fallback created_on). If technician_id is omitted, uses current technician.",
+      "Get the next work order for a technician. If technician_id is omitted, uses current technician.",
     parameters: {
       type: "object",
       properties: {
