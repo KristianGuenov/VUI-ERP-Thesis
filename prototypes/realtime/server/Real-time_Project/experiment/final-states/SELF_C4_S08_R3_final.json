@@ -1,0 +1,108 @@
+{
+  "trial": {
+    "trialId": "SELF_C4_S08_R3",
+    "condition": "C4",
+    "prototype": "realtime",
+    "environment": "industrial_noise",
+    "scenarioId": "S08",
+    "repetition": 3,
+    "status": "running",
+    "workOrderId": "WO-1001",
+    "serverAudioStartedAt": "2026-05-19T14:52:23.811Z",
+    "finalAcknowledgementAt": null
+  },
+  "workOrder": {
+    "OrderHeader": {
+      "order_id": "WO-1001",
+      "description": "Replace filter on air unit",
+      "status": {
+        "system_status": [
+          "REL",
+          "PCNF"
+        ],
+        "user_status": [
+          "IN_PROCESS"
+        ]
+      },
+      "assigned_to": "TECH001",
+      "created_on": "2026-05-09T00:00:00.000Z",
+      "due_date": "2026-05-30T12:00:00.000Z",
+      "last_changed": "2026-05-09T00:00:00.000Z"
+    },
+    "Operations": [
+      {
+        "operation_id": "OP-1",
+        "description": "Remove old filter",
+        "status": "closed",
+        "planned_duration_minutes": 30,
+        "actual_duration_minutes": 55,
+        "is_confirmed": true,
+        "started_at": "2026-05-09T08:00:00.000Z",
+        "completed_at": "2026-05-09T08:55:00.000Z"
+      },
+      {
+        "operation_id": "OP-2",
+        "description": "Install new filter",
+        "status": "open",
+        "planned_duration_minutes": 25,
+        "actual_duration_minutes": 0,
+        "is_confirmed": false,
+        "started_at": null,
+        "completed_at": null
+      }
+    ],
+    "Totals": {
+      "total_planned_time_minutes": 55,
+      "total_actual_time_minutes": 55
+    },
+    "TimeConfirmations": []
+  },
+  "allWorkOrders": [
+    {
+      "OrderHeader": {
+        "order_id": "WO-1001",
+        "description": "Replace filter on air unit",
+        "status": {
+          "system_status": [
+            "REL",
+            "PCNF"
+          ],
+          "user_status": [
+            "IN_PROCESS"
+          ]
+        },
+        "assigned_to": "TECH001",
+        "created_on": "2026-05-09T00:00:00.000Z",
+        "due_date": "2026-05-30T12:00:00.000Z",
+        "last_changed": "2026-05-09T00:00:00.000Z"
+      },
+      "Operations": [
+        {
+          "operation_id": "OP-1",
+          "description": "Remove old filter",
+          "status": "closed",
+          "planned_duration_minutes": 30,
+          "actual_duration_minutes": 55,
+          "is_confirmed": true,
+          "started_at": "2026-05-09T08:00:00.000Z",
+          "completed_at": "2026-05-09T08:55:00.000Z"
+        },
+        {
+          "operation_id": "OP-2",
+          "description": "Install new filter",
+          "status": "open",
+          "planned_duration_minutes": 25,
+          "actual_duration_minutes": 0,
+          "is_confirmed": false,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "Totals": {
+        "total_planned_time_minutes": 55,
+        "total_actual_time_minutes": 55
+      },
+      "TimeConfirmations": []
+    }
+  ]
+}

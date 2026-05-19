@@ -1,0 +1,3 @@
+condition,prototype,environment,totalTrials,taskSuccessRate,criticalExecutionErrorRate,meanEntityAccuracy,medianLatencyMs,minLatencyMs,maxLatencyMs,failureTimeoutRate,confirmationComplianceRate
+C3,realtime,quiet,30,0.7,0.2,0.8333333333333334,24415,1032,59799,0,0.8333333333333334
+C4,realtime,industrial_noise,30,0.8,0.1,0.9666666666666667,24830,1029,48716,0,0.9444444444444444

@@ -1,0 +1,10 @@
+trialId,condition,scenarioId,repetition,criticalExecutionError,reason,reviewerDecision,reviewerNotes
+SELF_C3_S01_R3,C3,S01,3,true,Executed operation did not match allowed operation,,
+SELF_C3_S02_R1,C3,S02,1,true,Executed operation did not match allowed operation,,
+SELF_C3_S03_R3,C3,S03,3,true,Final state did not match expected checks,,
+SELF_C3_S05_R1,C3,S05,1,true,Final state did not match expected checks,,
+SELF_C3_S05_R2,C3,S05,2,true,Final state did not match expected checks,,
+SELF_C3_S07_R2,C3,S07,2,true,Executed operation did not match allowed operation,,
+SELF_C4_S04_R3,C4,S04,3,true,Final state did not match expected checks,,
+SELF_C4_S07_R1,C4,S07,1,true,Executed operation did not match allowed operation,,
+SELF_C4_S07_R3,C4,S07,3,true,Executed operation did not match allowed operation,,

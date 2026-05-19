@@ -50,7 +50,7 @@ final class VoiceChatViewModel: ObservableObject {
     private var playbackPlayer = AVAudioPlayerNode()
 
     // IMPORTANT: keep your server IP here
-    private let server = "http://10.4.4.136:3000"
+    private let server = "http://10.4.4.133:3000"
     var serverBaseURL: String { server }
 
     // MARK: - Published state for UI
