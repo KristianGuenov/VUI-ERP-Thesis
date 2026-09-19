@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
@@ -119,6 +120,10 @@ function describeAsset(filePath, kind, relativeFile = null) {
   };
 }
 
+function commandAvailable(command) {
+  return spawnSync("/usr/bin/env", ["which", command], { encoding: "utf8" }).status === 0;
+}
+
 function preflight(config, trials, options) {
   const errors = [];
   const assets = [];
@@ -151,11 +156,56 @@ function preflight(config, trials, options) {
   } else if (!fs.existsSync(path.resolve(noiseFile))) {
     errors.push(`Missing industrial-noise file: ${path.resolve(noiseFile)}`);
   } else {
-    assets.push(describeAsset(path.resolve(noiseFile), "industrial_noise"));
+    const noiseAsset = describeAsset(path.resolve(noiseFile), "industrial_noise");
+    assets.push(noiseAsset);
+    if (config.noise.sha256 && noiseAsset.sha256 !== config.noise.sha256) {
+      errors.push(
+        `Industrial-noise SHA-256 mismatch: expected ${config.noise.sha256}, found ${noiseAsset.sha256}`
+      );
+    }
   }
 
   if (typeof config.noise.levelDb !== "number" || !Number.isFinite(config.noise.levelDb)) {
     errors.push("noise.levelDb must be a finite number fixed before the pilot");
+  }
+
+  if (typeof config.noise.playbackVolume !== "number" ||
+      config.noise.playbackVolume <= 0 || config.noise.playbackVolume > 1) {
+    errors.push("noise.playbackVolume must be greater than 0 and no more than 1");
+  } else {
+    const calculatedDb = 20 * Math.log10(config.noise.playbackVolume);
+    if (Math.abs(calculatedDb - config.noise.levelDb) > 0.01) {
+      errors.push(
+        `noise.levelDb (${config.noise.levelDb}) does not match playbackVolume (${calculatedDb.toFixed(3)} dB)`
+      );
+    }
+  }
+
+  if (!Number.isInteger(config.noise.systemOutputVolumePercent) ||
+      config.noise.systemOutputVolumePercent < 0 ||
+      config.noise.systemOutputVolumePercent > 100) {
+    errors.push("noise.systemOutputVolumePercent must be an integer from 0 to 100");
+  }
+
+  if (!config.noise.outputDevice) errors.push("noise.outputDevice must be configured");
+  if (!Number.isFinite(config.noise.deviceDistanceCm) || config.noise.deviceDistanceCm <= 0) {
+    errors.push("noise.deviceDistanceCm must be a positive number");
+  }
+
+  for (const command of ["swift", "SwitchAudioSource", "osascript"]) {
+    if (!commandAvailable(command)) errors.push(`Required noise-playback command is unavailable: ${command}`);
+  }
+
+  if (commandAvailable("SwitchAudioSource") && config.noise.outputDevice) {
+    const outputDevices = spawnSync("SwitchAudioSource", ["-a", "-t", "output"], {
+      encoding: "utf8"
+    });
+    const available = outputDevices.status === 0
+      ? outputDevices.stdout.split("\n").map((line) => line.trim()).filter(Boolean)
+      : [];
+    if (!available.includes(config.noise.outputDevice)) {
+      errors.push(`Configured output device is unavailable: ${config.noise.outputDevice}`);
+    }
   }
 
   return { errors, assets };
@@ -335,6 +385,7 @@ async function main() {
       ready: errors.length === 0,
       generatedAt: new Date().toISOString(),
       noiseLevelDb: config.noise.levelDb,
+      noise: config.noise,
       assets,
       errors
     };

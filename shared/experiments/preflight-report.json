@@ -1,0 +1,141 @@
+{
+  "experimentId": "VOICE_STIMULI_2026",
+  "expectedTrials": 144,
+  "ready": true,
+  "generatedAt": "2026-09-19T15:15:53.182Z",
+  "noiseLevelDb": -12.041,
+  "noise": {
+    "continuous": true,
+    "title": "Real factory noise recording",
+    "author": "Chaos Order",
+    "sourceUrl": "https://www.youtube.com/watch?v=2kVf_qNfblQ",
+    "localFile": "/Users/kristian/Downloads/voice_stimuli/noise/industrial_factory_2kVf_qNfblQ.wav",
+    "sha256": "f1675cef69778c7a25c86a9d19d6a9f4575d831a0db6ab90908511c8d40b485a",
+    "durationSeconds": 868.564172,
+    "format": "stereo 44.1 kHz signed 16-bit PCM WAV",
+    "sourceRmsDbfs": -18.269,
+    "sourcePeakDbfs": 0,
+    "playbackVolume": 0.25,
+    "levelDb": -12.041,
+    "levelReference": "20*log10(AVAudioPlayer volume); command stimuli use 1.0 file gain",
+    "systemOutputVolumePercent": 50,
+    "outputDevice": "MacBook Air Speakers",
+    "deviceDistanceCm": 50,
+    "devicePlacement": "Place the iPhone microphone 50 cm from and facing the centre of the MacBook Air speaker edge; do not move either device during or between prototype blocks."
+  },
+  "assets": [
+    {
+      "kind": "stimulus",
+      "relativeFile": "v1/S01_Add_20_minutes_V1_Male_US.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v1/S01_Add_20_minutes_V1_Male_US.wav",
+      "bytes": 408982,
+      "sha256": "904bfddeb50c96de41bbac2a721a5bb56b7c048f68b940e73b03f62a25fb9db4"
+    },
+    {
+      "kind": "stimulus",
+      "relativeFile": "v1/S07_Confirmation_V1_Male_US.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v1/S07_Confirmation_V1_Male_US.wav",
+      "bytes": 169078,
+      "sha256": "d5fbf40b8f525c7aa59ae14ef5499ed1bc283eb4baca9bb604f17e154310ae8d"
+    },
+    {
+      "kind": "stimulus",
+      "relativeFile": "v1/S04_Close_operation_V1_Male_US.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v1/S04_Close_operation_V1_Male_US.wav",
+      "bytes": 459268,
+      "sha256": "f4f7e739f75aef02efa8290ae3d4948be619786d54ecd0d1a577a46ecbaf4673"
+    },
+    {
+      "kind": "stimulus",
+      "relativeFile": "v1/S07_Close_work_order_V1_Male_US.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v1/S07_Close_work_order_V1_Male_US.wav",
+      "bytes": 377418,
+      "sha256": "25aa573feb3c7d8fd31b16ad06193e6e79ab4feccd8753d6b6c7233175c8de6c"
+    },
+    {
+      "kind": "stimulus",
+      "relativeFile": "v1/S09_Show_summary_V1_Male_US.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v1/S09_Show_summary_V1_Male_US.wav",
+      "bytes": 386414,
+      "sha256": "451cf29b193a2004b7b548a9b30e0bae66288f5338cb54b16589a7f68dcfd52e"
+    },
+    {
+      "kind": "stimulus",
+      "relativeFile": "v2/S01_Add_20_minutes_V2_Male_UK.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v2/S01_Add_20_minutes_V2_Male_UK.wav",
+      "bytes": 310556,
+      "sha256": "3c28cae00208048f018ac9903396d96d1081837a1464f080af7b891f8b8b3667"
+    },
+    {
+      "kind": "stimulus",
+      "relativeFile": "v2/S07_Confirmation_V2_Male_UK.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v2/S07_Confirmation_V2_Male_UK.wav",
+      "bytes": 142548,
+      "sha256": "d1ee2776058a4d0548ca3792f2d30ffa3c78bdeaa01b3969bcbf37eee96d981c"
+    },
+    {
+      "kind": "stimulus",
+      "relativeFile": "v2/S04_Close_operation_V2_Male_UK.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v2/S04_Close_operation_V2_Male_UK.wav",
+      "bytes": 365696,
+      "sha256": "8d9b971fb569eca789906e6d2345dca7022c92f8ae933236371861cadaf968f1"
+    },
+    {
+      "kind": "stimulus",
+      "relativeFile": "v2/S07_Close_work_order_V2_Male_UK.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v2/S07_Close_work_order_V2_Male_UK.wav",
+      "bytes": 299136,
+      "sha256": "97e8d14f279ed9c4bea53dd8b01f2ee05cc46263e579241be1d1fc59bc7a0b5e"
+    },
+    {
+      "kind": "stimulus",
+      "relativeFile": "v2/S09_Show_summary_V2_Male_UK.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v2/S09_Show_summary_V2_Male_UK.wav",
+      "bytes": 307112,
+      "sha256": "2e3d4610fb49c5aee8fd2c2ca9363b3f511a5d8383b95a6ea323dfe2766c17fc"
+    },
+    {
+      "kind": "stimulus",
+      "relativeFile": "v3/S01_Add_20_minutes_V3_Female_US.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v3/S01_Add_20_minutes_V3_Female_US.wav",
+      "bytes": 303832,
+      "sha256": "1e10ce82ae3b0726435ef74f487b51479f0ea82872a075614dc8f135ca7edd88"
+    },
+    {
+      "kind": "stimulus",
+      "relativeFile": "v3/S07_Confirmation_V3_Female_US.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v3/S07_Confirmation_V3_Female_US.wav",
+      "bytes": 117128,
+      "sha256": "86d9821b66327514e2bfeb4938ced9e1857fc01498e76b1dcaeae7c2a6dbdea5"
+    },
+    {
+      "kind": "stimulus",
+      "relativeFile": "v3/S04_Close_operation_V3_Female_US.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v3/S04_Close_operation_V3_Female_US.wav",
+      "bytes": 355156,
+      "sha256": "a579d3c9a59a2355f4e1e4239216aea678ce58cf62a61b4c0a188209eb0d4a02"
+    },
+    {
+      "kind": "stimulus",
+      "relativeFile": "v3/S07_Close_work_order_V3_Female_US.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v3/S07_Close_work_order_V3_Female_US.wav",
+      "bytes": 291668,
+      "sha256": "125a806c66755a34a06467054b96230bb27d2b04e5e6a0fa9e343d99bfcbc25e"
+    },
+    {
+      "kind": "stimulus",
+      "relativeFile": "v3/S09_Show_summary_V3_Female_US.wav",
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/v3/S09_Show_summary_V3_Female_US.wav",
+      "bytes": 296796,
+      "sha256": "807a53628f868a530ba757805e790395cd768f2eb6e8a2e39844f0406acbb4ea"
+    },
+    {
+      "kind": "industrial_noise",
+      "relativeFile": null,
+      "absoluteFile": "/Users/kristian/Downloads/voice_stimuli/noise/industrial_factory_2kVf_qNfblQ.wav",
+      "bytes": 153218816,
+      "sha256": "f1675cef69778c7a25c86a9d19d6a9f4575d831a0db6ab90908511c8d40b485a"
+    }
+  ],
+  "errors": []
+}

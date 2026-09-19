@@ -34,14 +34,19 @@ new latency metric has the same server-side definition as the previous 120 trial
 Before any counted trial:
 
 1. Archive the previous live experiment output.
-2. Configure a local industrial-noise file and a fixed `noise.levelDb`.
-3. Run the harness preflight against the stimulus directory.
-4. Complete non-counted pilot trials for all four scenarios on both prototypes.
-5. Verify that continuous noise does not trigger Realtime VAD by itself.
-6. Keep the same audio-input path for quiet and noisy conditions.
+2. Run the harness preflight against the stimulus directory and require `ready: true`.
+3. Start the fixed continuous-noise player for C2/C4 and use the documented device
+   placement.
+4. Verify before the first counted noisy trial that continuous noise alone does not
+   trigger Realtime VAD.
+5. Keep the same command playback path and physical device placement for quiet and
+   noisy conditions.
 
-The industrial-noise file and level intentionally remain unset in the committed plan.
-The preflight command fails until both are explicitly configured.
+The industrial-noise asset is pinned by SHA-256 in the committed plan. Playback is
+fixed at 0.25 file gain (-12.041 dB), 50% macOS output volume, through MacBook Air
+Speakers. Command stimuli play at 1.0 file gain. The iPhone microphone must remain 50
+cm from and facing the centre of the MacBook speaker edge. The noise player enforces
+the output device and system volume and loops without interruption.
 
 ## Harness examples
 
@@ -55,8 +60,10 @@ node shared/scripts/experimentHarness.mjs plan \
 node shared/scripts/experimentHarness.mjs preflight \
   --config shared/experiments/voice-stimuli-2026.json \
   --stimulus-root "$HOME/Downloads/voice_stimuli" \
-  --noise-file /absolute/path/to/factory-noise.wav \
-  --report /absolute/path/to/preflight-report.json
+  --report shared/experiments/preflight-report.json
+
+swift shared/scripts/noisePlayback.swift \
+  shared/experiments/voice-stimuli-2026.json
 ```
 
 The optional preflight report records byte sizes and SHA-256 hashes for every stimulus

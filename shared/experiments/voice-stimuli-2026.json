@@ -66,8 +66,18 @@
     "title": "Real factory noise recording",
     "author": "Chaos Order",
     "sourceUrl": "https://www.youtube.com/watch?v=2kVf_qNfblQ",
-    "localFile": null,
-    "levelDb": null,
-    "levelReference": "digital playback gain in dB; must be fixed before the pilot"
+    "localFile": "/Users/kristian/Downloads/voice_stimuli/noise/industrial_factory_2kVf_qNfblQ.wav",
+    "sha256": "f1675cef69778c7a25c86a9d19d6a9f4575d831a0db6ab90908511c8d40b485a",
+    "durationSeconds": 868.564172,
+    "format": "stereo 44.1 kHz signed 16-bit PCM WAV",
+    "sourceRmsDbfs": -18.269,
+    "sourcePeakDbfs": 0,
+    "playbackVolume": 0.25,
+    "levelDb": -12.041,
+    "levelReference": "20*log10(AVAudioPlayer volume); command stimuli use 1.0 file gain",
+    "systemOutputVolumePercent": 50,
+    "outputDevice": "MacBook Air Speakers",
+    "deviceDistanceCm": 50,
+    "devicePlacement": "Place the iPhone microphone 50 cm from and facing the centre of the MacBook Air speaker edge; do not move either device during or between prototype blocks."
   }
 }

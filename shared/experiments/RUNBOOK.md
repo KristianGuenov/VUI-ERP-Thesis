@@ -1,16 +1,16 @@
 # Experiment runbook
 
-This runbook is for the counted `VOICE_STIMULI_2026` experiment. Complete the
-non-counted pilots and fix the industrial-noise file and playback level before using
-it. Never reuse a trial ID; the servers reject duplicates.
+This runbook is for the counted `VOICE_STIMULI_2026` experiment. Require a successful
+preflight before using it. Never reuse a trial ID; the servers reject duplicates.
 
 ## Common sequence
 
 1. Start only the server and iOS client for the prototype under test.
-2. For an industrial-noise block, start the fixed local noise file before the client
-   begins listening and keep it playing continuously through all 36 trials. Do not
-   change the audio route, system volume, file gain, or device placement within or
-   between prototype blocks.
+2. For an industrial-noise block, place the iPhone microphone 50 cm from and facing
+   the centre of the MacBook Air speaker edge. Start the continuous player below
+   before the client begins listening and leave its terminal open through all 36
+   trials. It selects MacBook Air Speakers, sets macOS output to 50%, and loops the
+   pinned file at 0.25 gain (-12.041 dB). Do not move either device.
 3. Start the planned trial through the harness. Confirm the returned metadata and
    active trial ID before playing audio.
 4. Play the command stimulus once. For S01, S04, and S07, wait until the prototype
@@ -26,6 +26,17 @@ it. Never reuse a trial ID; the servers reject duplicates.
 The plan order is Realtime C3 quiet, Realtime C4 industrial noise, ASR-TTS C1 quiet,
 then ASR-TTS C2 industrial noise. Within each condition it runs all V1 trials, then V2,
 then V3; each voice contains S01, S04, S07, and S09 with repetitions R1–R3.
+
+Start continuous noise from the repository root. Stop it with Control-C only after the
+entire 36-trial noisy block:
+
+```sh
+swift shared/scripts/noisePlayback.swift \
+  shared/experiments/voice-stimuli-2026.json
+```
+
+Play every command and confirmation WAV with `afplay` at its default 1.0 file gain.
+The noise and stimuli therefore use the same physical output path.
 
 ## Trial-control commands
 
