@@ -1,0 +1,672 @@
+[
+  {
+    "scenarioId": "S01",
+    "title": "Add 20 minutes to WO-1001",
+    "workOrderId": "WO-1001",
+    "numericHeavy": true,
+    "includedInConfirmationCompliance": true,
+    "spokenPrompts": [
+      "Add 20 minutes to WO-1001.",
+      "Yes, confirm."
+    ],
+    "expectedEntities": {
+      "order_id": "WO-1001",
+      "minutes": 20
+    },
+    "allowedOperations": [
+      {
+        "toolName": "add_time_to_work_order",
+        "order_id": "WO-1001",
+        "minutes": 20
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "OrderHeader.order_id",
+        "equals": "WO-1001"
+      },
+      {
+        "path": "Totals.total_actual_time_minutes",
+        "equals": 75
+      }
+    ],
+    "initialWorkOrder": {
+      "OrderHeader": {
+        "order_id": "WO-1001",
+        "description": "Replace filter on air unit",
+        "status": {
+          "system_status": ["REL", "PCNF"],
+          "user_status": ["IN_PROCESS"]
+        },
+        "assigned_to": "TECH001",
+        "created_on": "2026-05-09T00:00:00.000Z",
+        "due_date": "2026-05-30T12:00:00.000Z",
+        "last_changed": "2026-05-09T00:00:00.000Z"
+      },
+      "Operations": [
+        {
+          "operation_id": "OP-1",
+          "description": "Remove old filter",
+          "status": "closed",
+          "planned_duration_minutes": 30,
+          "actual_duration_minutes": 55,
+          "is_confirmed": true,
+          "started_at": "2026-05-09T08:00:00.000Z",
+          "completed_at": "2026-05-09T08:55:00.000Z"
+        },
+        {
+          "operation_id": "OP-2",
+          "description": "Install new filter",
+          "status": "open",
+          "planned_duration_minutes": 25,
+          "actual_duration_minutes": 0,
+          "is_confirmed": false,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "Totals": {
+        "total_planned_time_minutes": 55,
+        "total_actual_time_minutes": 55
+      },
+      "TimeConfirmations": [
+        {
+          "confirmation_id": "C-WO1001-001",
+          "operation_id": "OP-1",
+          "technician_id": "TECH001",
+          "start_time": "2026-05-09T08:00:00.000Z",
+          "end_time": "2026-05-09T08:55:00.000Z",
+          "duration_minutes": 55,
+          "final_confirmation": true
+        }
+      ]
+    }
+  },
+  {
+    "scenarioId": "S02",
+    "title": "Add 45 minutes to WO-3003",
+    "workOrderId": "WO-3003",
+    "numericHeavy": true,
+    "includedInConfirmationCompliance": true,
+    "spokenPrompts": [
+      "Add 45 minutes to WO-3003.",
+      "Yes, confirm."
+    ],
+    "expectedEntities": {
+      "order_id": "WO-3003",
+      "minutes": 45
+    },
+    "allowedOperations": [
+      {
+        "toolName": "add_time_to_work_order",
+        "order_id": "WO-3003",
+        "minutes": 45
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "OrderHeader.order_id",
+        "equals": "WO-3003"
+      },
+      {
+        "path": "Totals.total_actual_time_minutes",
+        "equals": 45
+      }
+    ],
+    "initialWorkOrder": {
+      "OrderHeader": {
+        "order_id": "WO-3003",
+        "description": "remove filter.",
+        "status": {
+          "system_status": ["CRTD"],
+          "user_status": ["PLANNED"]
+        },
+        "assigned_to": "TECH001",
+        "created_on": "2026-05-09T00:00:00.000Z",
+        "due_date": "2026-05-30T12:00:00.000Z",
+        "last_changed": "2026-05-09T00:00:00.000Z"
+      },
+      "Operations": [
+        {
+          "operation_id": "OP-11",
+          "description": "Run diagnostics",
+          "status": "open",
+          "planned_duration_minutes": 45,
+          "actual_duration_minutes": 0,
+          "is_confirmed": false,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "Totals": {
+        "total_planned_time_minutes": 45,
+        "total_actual_time_minutes": 0
+      },
+      "TimeConfirmations": []
+    }
+  },
+  {
+    "scenarioId": "S03",
+    "title": "Close operation OP-2 in WO-1001",
+    "workOrderId": "WO-1001",
+    "numericHeavy": true,
+    "includedInConfirmationCompliance": true,
+    "spokenPrompts": [
+      "Close operation OP-2 in WO-1001.",
+      "Yes, confirm."
+    ],
+    "expectedEntities": {
+      "order_id": "WO-1001",
+      "operation_id": "OP-2"
+    },
+    "allowedOperations": [
+      {
+        "toolName": "close_operation",
+        "order_id": "WO-1001",
+        "operation_id": "OP-2"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "OrderHeader.order_id",
+        "equals": "WO-1001"
+      },
+      {
+        "path": "OperationsById.OP-2.status",
+        "equals": "closed"
+      }
+    ],
+    "initialWorkOrder": {
+      "OrderHeader": {
+        "order_id": "WO-1001",
+        "description": "Replace filter on air unit",
+        "status": {
+          "system_status": ["REL", "PCNF"],
+          "user_status": ["IN_PROCESS"]
+        },
+        "assigned_to": "TECH001",
+        "created_on": "2026-05-09T00:00:00.000Z",
+        "due_date": "2026-05-30T12:00:00.000Z",
+        "last_changed": "2026-05-09T00:00:00.000Z"
+      },
+      "Operations": [
+        {
+          "operation_id": "OP-1",
+          "description": "Remove old filter",
+          "status": "closed",
+          "planned_duration_minutes": 30,
+          "actual_duration_minutes": 55,
+          "is_confirmed": true,
+          "started_at": "2026-05-09T08:00:00.000Z",
+          "completed_at": "2026-05-09T08:55:00.000Z"
+        },
+        {
+          "operation_id": "OP-2",
+          "description": "Install new filter",
+          "status": "open",
+          "planned_duration_minutes": 25,
+          "actual_duration_minutes": 0,
+          "is_confirmed": false,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "Totals": {
+        "total_planned_time_minutes": 55,
+        "total_actual_time_minutes": 55
+      },
+      "TimeConfirmations": []
+    }
+  },
+  {
+    "scenarioId": "S04",
+    "title": "Close operation OP-B in WO-2002",
+    "workOrderId": "WO-2002",
+    "numericHeavy": true,
+    "includedInConfirmationCompliance": true,
+    "spokenPrompts": [
+      "Close operation OP-B in WO-2002.",
+      "Yes, confirm."
+    ],
+    "expectedEntities": {
+      "order_id": "WO-2002",
+      "operation_id": "OP-B"
+    },
+    "allowedOperations": [
+      {
+        "toolName": "close_operation",
+        "order_id": "WO-2002",
+        "operation_id": "OP-B"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "OrderHeader.order_id",
+        "equals": "WO-2002"
+      },
+      {
+        "path": "OperationsById.OP-B.status",
+        "equals": "closed"
+      }
+    ],
+    "initialWorkOrder": {
+      "OrderHeader": {
+        "order_id": "WO-2002",
+        "description": "Fix conveyor belt alignment",
+        "status": {
+          "system_status": ["REL", "PCNF"],
+          "user_status": ["IN_PROCESS"]
+        },
+        "assigned_to": "TECH001",
+        "created_on": "2026-05-09T00:00:00.000Z",
+        "due_date": "2026-05-30T12:00:00.000Z",
+        "last_changed": "2026-05-09T00:00:00.000Z"
+      },
+      "Operations": [
+        {
+          "operation_id": "OP-A",
+          "description": "Inspect belt",
+          "status": "closed",
+          "planned_duration_minutes": 40,
+          "actual_duration_minutes": 40,
+          "is_confirmed": true,
+          "started_at": "2026-05-09T08:00:00.000Z",
+          "completed_at": "2026-05-09T08:40:00.000Z"
+        },
+        {
+          "operation_id": "OP-B",
+          "description": "Adjust rollers",
+          "status": "open",
+          "planned_duration_minutes": 35,
+          "actual_duration_minutes": 0,
+          "is_confirmed": false,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "Totals": {
+        "total_planned_time_minutes": 75,
+        "total_actual_time_minutes": 40
+      },
+      "TimeConfirmations": []
+    }
+  },
+  {
+    "scenarioId": "S05",
+    "title": "Close operation OP-11 in WO-3003",
+    "workOrderId": "WO-3003",
+    "numericHeavy": true,
+    "includedInConfirmationCompliance": true,
+    "spokenPrompts": [
+      "Close operation OP-11 in WO-3003.",
+      "Yes, confirm."
+    ],
+    "expectedEntities": {
+      "order_id": "WO-3003",
+      "operation_id": "OP-11"
+    },
+    "allowedOperations": [
+      {
+        "toolName": "close_operation",
+        "order_id": "WO-3003",
+        "operation_id": "OP-11"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "OrderHeader.order_id",
+        "equals": "WO-3003"
+      },
+      {
+        "path": "OperationsById.OP-11.status",
+        "equals": "closed"
+      }
+    ],
+    "initialWorkOrder": {
+      "OrderHeader": {
+        "order_id": "WO-3003",
+        "description": "remove filter.",
+        "status": {
+          "system_status": ["CRTD"],
+          "user_status": ["PLANNED"]
+        },
+        "assigned_to": "TECH001",
+        "created_on": "2026-05-09T00:00:00.000Z",
+        "due_date": "2026-05-30T12:00:00.000Z",
+        "last_changed": "2026-05-09T00:00:00.000Z"
+      },
+      "Operations": [
+        {
+          "operation_id": "OP-11",
+          "description": "Run diagnostics",
+          "status": "open",
+          "planned_duration_minutes": 45,
+          "actual_duration_minutes": 0,
+          "is_confirmed": false,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "Totals": {
+        "total_planned_time_minutes": 45,
+        "total_actual_time_minutes": 0
+      },
+      "TimeConfirmations": []
+    }
+  },
+  {
+    "scenarioId": "S06",
+    "title": "Start work order WO-3003",
+    "workOrderId": "WO-3003",
+    "numericHeavy": false,
+    "includedInConfirmationCompliance": false,
+    "spokenPrompts": [
+      "Start work order WO-3003."
+    ],
+    "expectedEntities": {},
+    "allowedOperations": [
+      {
+        "toolName": "start_work_order",
+        "order_id": "WO-3003"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "OrderHeader.order_id",
+        "equals": "WO-3003"
+      },
+      {
+        "path": "OrderHeader.status.user_status.0",
+        "equals": "IN_PROCESS"
+      }
+    ],
+    "initialWorkOrder": {
+      "OrderHeader": {
+        "order_id": "WO-3003",
+        "description": "remove filter.",
+        "status": {
+          "system_status": ["CRTD"],
+          "user_status": ["PLANNED"]
+        },
+        "assigned_to": "TECH001",
+        "created_on": "2026-05-09T00:00:00.000Z",
+        "due_date": "2026-05-30T12:00:00.000Z",
+        "last_changed": "2026-05-09T00:00:00.000Z"
+      },
+      "Operations": [
+        {
+          "operation_id": "OP-11",
+          "description": "Run diagnostics",
+          "status": "open",
+          "planned_duration_minutes": 45,
+          "actual_duration_minutes": 0,
+          "is_confirmed": false,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "Totals": {
+        "total_planned_time_minutes": 45,
+        "total_actual_time_minutes": 0
+      },
+      "TimeConfirmations": []
+    }
+  },
+  {
+    "scenarioId": "S07",
+    "title": "Close work order WO-2002",
+    "workOrderId": "WO-2002",
+    "numericHeavy": false,
+    "includedInConfirmationCompliance": true,
+    "spokenPrompts": [
+      "Close work order WO-2002.",
+      "Yes, confirm."
+    ],
+    "expectedEntities": {},
+    "allowedOperations": [
+      {
+        "toolName": "complete_work_order",
+        "order_id": "WO-2002",
+        "force": false
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "OrderHeader.order_id",
+        "equals": "WO-2002"
+      },
+      {
+        "path": "OrderHeader.status.user_status.0",
+        "equals": "COMPLETED"
+      }
+    ],
+    "initialWorkOrder": {
+      "OrderHeader": {
+        "order_id": "WO-2002",
+        "description": "Fix conveyor belt alignment",
+        "status": {
+          "system_status": ["REL", "PCNF"],
+          "user_status": ["IN_PROCESS"]
+        },
+        "assigned_to": "TECH001",
+        "created_on": "2026-05-09T00:00:00.000Z",
+        "due_date": "2026-05-30T12:00:00.000Z",
+        "last_changed": "2026-05-09T00:00:00.000Z"
+      },
+      "Operations": [
+        {
+          "operation_id": "OP-A",
+          "description": "Inspect belt",
+          "status": "closed",
+          "planned_duration_minutes": 40,
+          "actual_duration_minutes": 40,
+          "is_confirmed": true,
+          "started_at": "2026-05-09T08:00:00.000Z",
+          "completed_at": "2026-05-09T08:40:00.000Z"
+        },
+        {
+          "operation_id": "OP-B",
+          "description": "Adjust rollers",
+          "status": "closed",
+          "planned_duration_minutes": 35,
+          "actual_duration_minutes": 35,
+          "is_confirmed": true,
+          "started_at": "2026-05-09T08:45:00.000Z",
+          "completed_at": "2026-05-09T09:20:00.000Z"
+        }
+      ],
+      "Totals": {
+        "total_planned_time_minutes": 75,
+        "total_actual_time_minutes": 75
+      },
+      "TimeConfirmations": []
+    }
+  },
+  {
+    "scenarioId": "S08",
+    "title": "Status of WO-1001",
+    "workOrderId": "WO-1001",
+    "numericHeavy": false,
+    "includedInConfirmationCompliance": false,
+    "spokenPrompts": [
+      "What is the status of WO-1001?"
+    ],
+    "expectedEntities": {},
+    "allowedOperations": [
+      {
+        "toolName": "get_work_order_status",
+        "order_id": "WO-1001"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "OrderHeader.order_id",
+        "equals": "WO-1001"
+      }
+    ],
+    "initialWorkOrder": {
+      "OrderHeader": {
+        "order_id": "WO-1001",
+        "description": "Replace filter on air unit",
+        "status": {
+          "system_status": ["REL", "PCNF"],
+          "user_status": ["IN_PROCESS"]
+        },
+        "assigned_to": "TECH001",
+        "created_on": "2026-05-09T00:00:00.000Z",
+        "due_date": "2026-05-30T12:00:00.000Z",
+        "last_changed": "2026-05-09T00:00:00.000Z"
+      },
+      "Operations": [
+        {
+          "operation_id": "OP-1",
+          "description": "Remove old filter",
+          "status": "closed",
+          "planned_duration_minutes": 30,
+          "actual_duration_minutes": 55,
+          "is_confirmed": true,
+          "started_at": "2026-05-09T08:00:00.000Z",
+          "completed_at": "2026-05-09T08:55:00.000Z"
+        },
+        {
+          "operation_id": "OP-2",
+          "description": "Install new filter",
+          "status": "open",
+          "planned_duration_minutes": 25,
+          "actual_duration_minutes": 0,
+          "is_confirmed": false,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "Totals": {
+        "total_planned_time_minutes": 55,
+        "total_actual_time_minutes": 55
+      },
+      "TimeConfirmations": []
+    }
+  },
+  {
+    "scenarioId": "S09",
+    "title": "Summary for WO-1001",
+    "workOrderId": "WO-1001",
+    "numericHeavy": false,
+    "includedInConfirmationCompliance": false,
+    "spokenPrompts": [
+      "Show summary for WO-1001."
+    ],
+    "expectedEntities": {},
+    "allowedOperations": [
+      {
+        "toolName": "get_work_order_details",
+        "order_id": "WO-1001"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "OrderHeader.order_id",
+        "equals": "WO-1001"
+      }
+    ],
+    "initialWorkOrder": {
+      "OrderHeader": {
+        "order_id": "WO-1001",
+        "description": "Replace filter on air unit",
+        "status": {
+          "system_status": ["REL", "PCNF"],
+          "user_status": ["IN_PROCESS"]
+        },
+        "assigned_to": "TECH001",
+        "created_on": "2026-05-09T00:00:00.000Z",
+        "due_date": "2026-05-30T12:00:00.000Z",
+        "last_changed": "2026-05-09T00:00:00.000Z"
+      },
+      "Operations": [
+        {
+          "operation_id": "OP-1",
+          "description": "Remove old filter",
+          "status": "closed",
+          "planned_duration_minutes": 30,
+          "actual_duration_minutes": 55,
+          "is_confirmed": true,
+          "started_at": "2026-05-09T08:00:00.000Z",
+          "completed_at": "2026-05-09T08:55:00.000Z"
+        },
+        {
+          "operation_id": "OP-2",
+          "description": "Install new filter",
+          "status": "open",
+          "planned_duration_minutes": 25,
+          "actual_duration_minutes": 0,
+          "is_confirmed": false,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "Totals": {
+        "total_planned_time_minutes": 55,
+        "total_actual_time_minutes": 55
+      },
+      "TimeConfirmations": []
+    }
+  },
+  {
+    "scenarioId": "S10",
+    "title": "Update description of WO-3003",
+    "workOrderId": "WO-3003",
+    "numericHeavy": false,
+    "includedInConfirmationCompliance": false,
+    "spokenPrompts": [
+      "Set description of WO-3003 to Replace filter"
+    ],
+    "expectedEntities": {},
+    "allowedOperations": [
+      {
+        "toolName": "update_description",
+        "order_id": "WO-3003",
+        "description": "Replace filter"
+      }
+    ],
+    "expectedFinalChecks": [
+      {
+        "path": "OrderHeader.order_id",
+        "equals": "WO-3003"
+      },
+      {
+        "path": "OrderHeader.description",
+        "equals": "Replace filter"
+      }
+    ],
+    "initialWorkOrder": {
+      "OrderHeader": {
+        "order_id": "WO-3003",
+        "description": "remove filter.",
+        "status": {
+          "system_status": ["CRTD"],
+          "user_status": ["PLANNED"]
+        },
+        "assigned_to": "TECH001",
+        "created_on": "2026-05-09T00:00:00.000Z",
+        "due_date": "2026-05-30T12:00:00.000Z",
+        "last_changed": "2026-05-09T00:00:00.000Z"
+      },
+      "Operations": [
+        {
+          "operation_id": "OP-11",
+          "description": "Run diagnostics",
+          "status": "open",
+          "planned_duration_minutes": 45,
+          "actual_duration_minutes": 0,
+          "is_confirmed": false,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "Totals": {
+        "total_planned_time_minutes": 45,
+        "total_actual_time_minutes": 0
+      },
+      "TimeConfirmations": []
+    }
+  }
+]

@@ -7,7 +7,10 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "analyze:kpis": "node experiment/analyzeKpis.js"
+    "analyze:kpis": "node experiment/analyzeKpis.js",
+    "experiment:plan": "node ../../../../shared/scripts/experimentHarness.mjs plan --config ../../../../shared/experiments/voice-stimuli-2026.json",
+    "experiment:preflight": "node ../../../../shared/scripts/experimentHarness.mjs preflight --config ../../../../shared/experiments/voice-stimuli-2026.json",
+    "experiment:validate": "node ../../../../shared/scripts/experimentHarness.mjs validate --config ../../../../shared/experiments/voice-stimuli-2026.json --prototype realtime --experiment-root experiment"
   },
   "dependencies": {
     "cors": "^2.8.5",

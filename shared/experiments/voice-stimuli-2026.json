@@ -1,0 +1,73 @@
+{
+  "experimentId": "VOICE_STIMULI_2026",
+  "description": "Four common scenarios, three repetitions, three recorded voices, quiet and continuous industrial-noise conditions, across both thesis prototypes.",
+  "scenarioOrder": ["S01", "S04", "S07", "S09"],
+  "scenarios": {
+    "S01": { "requiresConfirmation": true },
+    "S04": { "requiresConfirmation": true },
+    "S07": { "requiresConfirmation": true },
+    "S09": { "requiresConfirmation": false }
+  },
+  "repetitions": [1, 2, 3],
+  "voices": [
+    {
+      "id": "V1",
+      "description": "Male US",
+      "files": {
+        "S01": "v1/S01_Add_20_minutes_V1_Male_US.wav",
+        "S04": "v1/S04_Close_operation_V1_Male_US.wav",
+        "S07": "v1/S07_Close_work_order_V1_Male_US.wav",
+        "S09": "v1/S09_Show_summary_V1_Male_US.wav",
+        "confirmation": "v1/S07_Confirmation_V1_Male_US.wav"
+      }
+    },
+    {
+      "id": "V2",
+      "description": "Male UK",
+      "files": {
+        "S01": "v2/S01_Add_20_minutes_V2_Male_UK.wav",
+        "S04": "v2/S04_Close_operation_V2_Male_UK.wav",
+        "S07": "v2/S07_Close_work_order_V2_Male_UK.wav",
+        "S09": "v2/S09_Show_summary_V2_Male_UK.wav",
+        "confirmation": "v2/S07_Confirmation_V2_Male_UK.wav"
+      }
+    },
+    {
+      "id": "V3",
+      "description": "Female US",
+      "files": {
+        "S01": "v3/S01_Add_20_minutes_V3_Female_US.wav",
+        "S04": "v3/S04_Close_operation_V3_Female_US.wav",
+        "S07": "v3/S07_Close_work_order_V3_Female_US.wav",
+        "S09": "v3/S09_Show_summary_V3_Female_US.wav",
+        "confirmation": "v3/S07_Confirmation_V3_Female_US.wav"
+      }
+    }
+  ],
+  "prototypeOrder": ["realtime", "asr_tts"],
+  "prototypes": {
+    "realtime": {
+      "serverDirectory": "prototypes/realtime/server/Real-time_Project",
+      "conditions": [
+        { "condition": "C3", "environment": "quiet" },
+        { "condition": "C4", "environment": "industrial_noise" }
+      ]
+    },
+    "asr_tts": {
+      "serverDirectory": "prototypes/asr-tts/server/ASR Project",
+      "conditions": [
+        { "condition": "C1", "environment": "quiet" },
+        { "condition": "C2", "environment": "industrial_noise" }
+      ]
+    }
+  },
+  "noise": {
+    "continuous": true,
+    "title": "Real factory noise recording",
+    "author": "Chaos Order",
+    "sourceUrl": "https://www.youtube.com/watch?v=2kVf_qNfblQ",
+    "localFile": null,
+    "levelDb": null,
+    "levelReference": "digital playback gain in dB; must be fixed before the pilot"
+  }
+}

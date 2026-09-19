@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import OpenAI from "openai";
 import { toFile } from "openai/uploads";
-import { logEvent, saveFinalState, safeClone } from "../experimentLogger.js";
+import { hasTrialStarted, logEvent, saveFinalState, safeClone } from "../experimentLogger.js";
 
 const app = express();
 const upload = multer({ limits: { fileSize: 25 * 1024 * 1024 } });
@@ -37,11 +37,18 @@ type WorkOrder = {
 
 type Trial = {
   trialId: string;
+  experimentId: string | null;
   condition: string;
   prototype: string;
   environment: string;
   scenarioId: string;
   repetition: number;
+  stimulusVoice: string | null;
+  stimulusFile: string | null;
+  confirmationStimulusFile: string | null;
+  noiseSource: string | null;
+  noiseLevelDb: number | null;
+  runSequence: number | null;
   status: string;
   workOrderId: string;
   serverAudioStartedAt: string | null;
@@ -118,11 +125,18 @@ function trialMetadata(extra: Record<string, unknown> = {}) {
 
   return {
     trialId: activeTrial.trialId,
+    experimentId: activeTrial.experimentId,
     condition: activeTrial.condition,
     prototype: activeTrial.prototype,
     environment: activeTrial.environment,
     scenarioId: activeTrial.scenarioId,
     repetition: activeTrial.repetition,
+    stimulusVoice: activeTrial.stimulusVoice,
+    stimulusFile: activeTrial.stimulusFile,
+    confirmationStimulusFile: activeTrial.confirmationStimulusFile,
+    noiseSource: activeTrial.noiseSource,
+    noiseLevelDb: activeTrial.noiseLevelDb,
+    runSequence: activeTrial.runSequence,
     ...extra,
   };
 }
@@ -985,7 +999,29 @@ app.post("/tts", async (req, res) => {
 
 app.post("/experiment/start-trial", (req, res) => {
   try {
-    const { trialId, condition, prototype, environment, scenarioId, repetition } = req.body ?? {};
+    const {
+      trialId,
+      experimentId = null,
+      condition,
+      prototype,
+      environment,
+      scenarioId,
+      repetition,
+      stimulusVoice = null,
+      stimulusFile = null,
+      confirmationStimulusFile = null,
+      noiseSource = null,
+      noiseLevelDb = null,
+      runSequence = null,
+    } = req.body ?? {};
+
+    if (activeTrial) {
+      return res.status(409).json({
+        ok: false,
+        error: "trial_already_active",
+        activeTrial,
+      });
+    }
 
     if (!trialId || !condition || !prototype || !environment || !scenarioId || repetition == null) {
       return res.status(400).json({
@@ -994,7 +1030,38 @@ app.post("/experiment/start-trial", (req, res) => {
       });
     }
 
+    if (hasTrialStarted(String(trialId))) {
+      return res.status(409).json({
+        ok: false,
+        error: "duplicate_trial_id",
+        trialId,
+      });
+    }
+
     const scenario = getScenarioById(String(scenarioId));
+
+    if (experimentId) {
+      const metadataErrors: string[] = [];
+      if (prototype !== "asr_tts") metadataErrors.push("prototype");
+      if (!stimulusVoice) metadataErrors.push("stimulusVoice");
+      if (!stimulusFile) metadataErrors.push("stimulusFile");
+      if (runSequence == null || !Number.isFinite(Number(runSequence))) metadataErrors.push("runSequence");
+      if (scenario.includedInConfirmationCompliance && !confirmationStimulusFile) {
+        metadataErrors.push("confirmationStimulusFile");
+      }
+      if (environment === "industrial_noise") {
+        if (!noiseSource) metadataErrors.push("noiseSource");
+        if (noiseLevelDb == null || !Number.isFinite(Number(noiseLevelDb))) metadataErrors.push("noiseLevelDb");
+      }
+
+      if (metadataErrors.length) {
+        return res.status(400).json({
+          ok: false,
+          error: "missing_or_invalid_experiment_metadata",
+          fields: metadataErrors,
+        });
+      }
+    }
 
     if (!Array.isArray(scenario.initialState)) {
       return res.status(400).json({
@@ -1009,11 +1076,19 @@ app.post("/experiment/start-trial", (req, res) => {
 
     activeTrial = {
       trialId: String(trialId),
+      experimentId: experimentId == null ? null : String(experimentId),
       condition: String(condition),
       prototype: String(prototype),
       environment: String(environment),
       scenarioId: String(scenarioId),
       repetition: Number(repetition),
+      stimulusVoice: stimulusVoice == null ? null : String(stimulusVoice),
+      stimulusFile: stimulusFile == null ? null : String(stimulusFile),
+      confirmationStimulusFile:
+        confirmationStimulusFile == null ? null : String(confirmationStimulusFile),
+      noiseSource: noiseSource == null ? null : String(noiseSource),
+      noiseLevelDb: noiseLevelDb == null ? null : Number(noiseLevelDb),
+      runSequence: runSequence == null ? null : Number(runSequence),
       status: "running",
       workOrderId: String(scenario.workOrderId),
       serverAudioStartedAt: null,
@@ -1037,6 +1112,17 @@ app.post("/experiment/end-trial", (_req, res) => {
   try {
     if (!activeTrial) {
       return res.status(400).json({ ok: false, error: "no_active_trial" });
+    }
+
+    if (awaitingFinalAcknowledgement || pendingAction) {
+      return res.status(409).json({
+        ok: false,
+        error: "trial_not_ready_to_end",
+        awaitingFinalAcknowledgement,
+        pendingAction: pendingAction
+          ? { toolName: pendingAction.toolName, args: pendingAction.args }
+          : null,
+      });
     }
 
     const finalState = loadState();

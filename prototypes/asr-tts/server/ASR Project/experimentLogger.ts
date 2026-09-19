@@ -45,6 +45,23 @@ export function logEvent(event: Record<string, any>) {
   return entry;
 }
 
+export function hasTrialStarted(trialId: string) {
+  if (!trialId || !fs.existsSync(EVENTS_FILE)) return false;
+
+  return fs
+    .readFileSync(EVENTS_FILE, "utf8")
+    .split("\n")
+    .filter(Boolean)
+    .some((line) => {
+      try {
+        const event = JSON.parse(line);
+        return event.trialId === trialId && event.eventType === "trial_started";
+      } catch {
+        return false;
+      }
+    });
+}
+
 export function saveFinalState(trialId: string, payload: any) {
   ensureExperimentStructure();
 

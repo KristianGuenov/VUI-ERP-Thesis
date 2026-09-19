@@ -42,6 +42,10 @@ logs/
 tmp/
 .cache/
 
+# Historical experiment event streams are evidence, not runtime logs.
+!**/experiment/archive/**/logs/
+!**/experiment/archive/**/logs/*.jsonl
+
 # Recordings / uploads
 **/Recordings/
 **/recordings/
@@ -58,4 +62,3 @@ build/
 *.xcresult
 xcuserdata/
 *.xcuserstate
-

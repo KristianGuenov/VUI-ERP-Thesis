@@ -6,7 +6,10 @@
   "scripts": {
     "start": "tsx Server/index.ts",
     "dev": "tsx Server/index.ts",
-    "analyze:kpis": "tsx experiment/analyzeKpis.ts"
+    "analyze:kpis": "tsx experiment/analyzeKpis.ts",
+    "experiment:plan": "node ../../../../shared/scripts/experimentHarness.mjs plan --config ../../../../shared/experiments/voice-stimuli-2026.json",
+    "experiment:preflight": "node ../../../../shared/scripts/experimentHarness.mjs preflight --config ../../../../shared/experiments/voice-stimuli-2026.json",
+    "experiment:validate": "node ../../../../shared/scripts/experimentHarness.mjs validate --config ../../../../shared/experiments/voice-stimuli-2026.json --prototype asr_tts --experiment-root experiment"
   },
   "keywords": [],
   "author": "",

@@ -16,7 +16,7 @@ import {
   resetWorkOrders,
   setExperimentWorkOrders
 } from "./workOrders.js";
-import { logEvent, saveFinalState, safeClone } from "./experimentLogger.js";
+import { hasTrialStarted, logEvent, saveFinalState, safeClone } from "./experimentLogger.js";
 import fs from "fs";
 import path from "path";
 
@@ -254,11 +254,18 @@ function trialMetadata(extra = {}) {
 
   return {
     trialId: activeTrial.trialId,
+    experimentId: activeTrial.experimentId,
     condition: activeTrial.condition,
     prototype: activeTrial.prototype,
     environment: activeTrial.environment,
     scenarioId: activeTrial.scenarioId,
     repetition: activeTrial.repetition,
+    stimulusVoice: activeTrial.stimulusVoice,
+    stimulusFile: activeTrial.stimulusFile,
+    confirmationStimulusFile: activeTrial.confirmationStimulusFile,
+    noiseSource: activeTrial.noiseSource,
+    noiseLevelDb: activeTrial.noiseLevelDb,
+    runSequence: activeTrial.runSequence,
     ...extra
   };
 }
@@ -340,6 +347,14 @@ function maybeLogConfirmationEvents(parsed) {
 
   const observedText = extractEventText(parsed);
   if (!observedText) return;
+
+  if ((parsed.type || "").includes("input_audio_transcription") &&
+      (parsed.type || "").includes("completed")) {
+    logTrialEvent("input_transcription_completed", {
+      source: parsed.type,
+      text: observedText
+    });
+  }
 
   const lower = observedText.toLowerCase();
 
@@ -1098,7 +1113,29 @@ app.post("/respond", (req, res) => {
 
 app.post("/experiment/start-trial", (req, res) => {
   try {
-    const { trialId, condition, prototype, environment, scenarioId, repetition } = req.body;
+    const {
+      trialId,
+      experimentId = null,
+      condition,
+      prototype,
+      environment,
+      scenarioId,
+      repetition,
+      stimulusVoice = null,
+      stimulusFile = null,
+      confirmationStimulusFile = null,
+      noiseSource = null,
+      noiseLevelDb = null,
+      runSequence = null
+    } = req.body;
+
+    if (activeTrial) {
+      return res.status(409).json({
+        ok: false,
+        error: "trial_already_active",
+        activeTrial
+      });
+    }
 
     if (!trialId || !condition || !prototype || !environment || !scenarioId || repetition == null) {
       return res.status(400).json({
@@ -1108,7 +1145,38 @@ app.post("/experiment/start-trial", (req, res) => {
       });
     }
 
+    if (hasTrialStarted(trialId)) {
+      return res.status(409).json({
+        ok: false,
+        error: "duplicate_trial_id",
+        trialId
+      });
+    }
+
     const scenario = getScenarioById(scenarioId);
+
+    if (experimentId) {
+      const metadataErrors = [];
+      if (prototype !== "realtime") metadataErrors.push("prototype");
+      if (!stimulusVoice) metadataErrors.push("stimulusVoice");
+      if (!stimulusFile) metadataErrors.push("stimulusFile");
+      if (runSequence == null || !Number.isFinite(Number(runSequence))) metadataErrors.push("runSequence");
+      if (scenarioNeedsConfirmation(scenario) && !confirmationStimulusFile) {
+        metadataErrors.push("confirmationStimulusFile");
+      }
+      if (environment === "industrial_noise") {
+        if (!noiseSource) metadataErrors.push("noiseSource");
+        if (noiseLevelDb == null || !Number.isFinite(Number(noiseLevelDb))) metadataErrors.push("noiseLevelDb");
+      }
+
+      if (metadataErrors.length) {
+        return res.status(400).json({
+          ok: false,
+          error: "missing_or_invalid_experiment_metadata",
+          fields: metadataErrors
+        });
+      }
+    }
 
     if (!scenario.initialWorkOrder) {
       return res.status(400).json({
@@ -1124,11 +1192,18 @@ app.post("/experiment/start-trial", (req, res) => {
 
     activeTrial = {
       trialId,
+      experimentId,
       condition,
       prototype,
       environment,
       scenarioId,
       repetition,
+      stimulusVoice,
+      stimulusFile,
+      confirmationStimulusFile,
+      noiseSource,
+      noiseLevelDb,
+      runSequence,
       status: "running",
       workOrderId: scenario.workOrderId,
       serverAudioStartedAt: null,
@@ -1151,6 +1226,18 @@ app.post("/experiment/end-trial", (req, res) => {
   try {
     if (!activeTrial) {
       return res.status(400).json({ ok: false, error: "no_active_trial" });
+    }
+
+    if (responsePending || awaitingFinalAcknowledgement || pendingSensitiveAction) {
+      return res.status(409).json({
+        ok: false,
+        error: "trial_not_ready_to_end",
+        responsePending,
+        awaitingFinalAcknowledgement,
+        pendingSensitiveAction: pendingSensitiveAction
+          ? { name: pendingSensitiveAction.name, args: pendingSensitiveAction.args }
+          : null
+      });
     }
 
     const scenario = getScenarioById(activeTrial.scenarioId);

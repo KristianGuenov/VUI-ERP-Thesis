@@ -16,7 +16,7 @@ final class VoiceChatViewModel: ObservableObject {
     private let playbackEngine = AVAudioEngine()
     private var playbackPlayer = AVAudioPlayerNode()
 
-    private let server = "http://10.4.4.133:3000"
+    private let server = "http://10.4.4.112:3000"
 
     // MARK: - Published state for UI
     @Published var isAIPlaying: Bool = false
@@ -44,6 +44,8 @@ final class VoiceChatViewModel: ObservableObject {
     private let noiseAlpha: Float = 0.05
     private let minDynamicThreshold: Float = 0.01
     private let maxDynamicThreshold: Float = 0.15
+    private let initialNoiseCalibrationSeconds: TimeInterval = 2.0
+    private var vadCalibrationUntil: Date = .distantPast
 
     private let silenceGrace: TimeInterval = 2.5
     private var awaitingUserReply = false
@@ -272,6 +274,13 @@ final class VoiceChatViewModel: ObservableObject {
         let inputFormat = input.outputFormat(forBus: 0)
         input.removeTap(onBus: 0)
 
+        // Establish the ambient floor before accepting speech. This prevents a
+        // continuous-noise condition from being mistaken for an utterance on the
+        // very first input buffer. The experiment must wait for this short window
+        // before playing a command. Existing server-side KPI timing is unchanged.
+        noiseFloorRMS = 0.0
+        vadCalibrationUntil = Date().addingTimeInterval(initialNoiseCalibrationSeconds)
+
         var recordedData = Data()
 
         input.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
@@ -289,6 +298,12 @@ final class VoiceChatViewModel: ObservableObject {
             let frameCount = Int(buffer.frameLength)
             let rms = vDSP.rootMeanSquare(UnsafeBufferPointer(start: channel, count: frameCount))
             let now = Date()
+
+            if now < self.vadCalibrationUntil && !self.isRecordingSpeech {
+                let alpha = self.noiseAlpha
+                self.noiseFloorRMS = (1 - alpha) * self.noiseFloorRMS + alpha * rms
+                return
+            }
 
             if !self.isRecordingSpeech {
                 let alpha = self.noiseAlpha
