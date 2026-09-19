@@ -7,9 +7,13 @@ import fs from "fs";
 import path from "path";
 
 const EXPERIMENT_DIR = path.resolve("experiment");
-const EVENTS_FILE = path.join(EXPERIMENT_DIR, "logs", "events.jsonl");
+const EVENTS_FILE = process.env.EXPERIMENT_EVENTS_FILE
+  ? path.resolve(process.env.EXPERIMENT_EVENTS_FILE)
+  : path.join(EXPERIMENT_DIR, "logs", "events.jsonl");
 const SCENARIOS_FILE = path.join(EXPERIMENT_DIR, "scenarios", "common_scenarios.json");
-const FINAL_STATES_DIR = path.join(EXPERIMENT_DIR, "final-states");
+const FINAL_STATES_DIR = process.env.EXPERIMENT_FINAL_STATES_DIR
+  ? path.resolve(process.env.EXPERIMENT_FINAL_STATES_DIR)
+  : path.join(EXPERIMENT_DIR, "final-states");
 const RESULTS_DIR = path.join(EXPERIMENT_DIR, "results");
 const MANUAL_REVIEW_FILE = path.join(EXPERIMENT_DIR, "manual-review", "critical-error-review.csv");
 
@@ -315,7 +319,10 @@ function main() {
 
   const scenarios = readJson(SCENARIOS_FILE, []);
   const scenarioById = new Map(scenarios.map((scenario: any) => [scenario.scenarioId, scenario]));
-  const events = readJsonl(EVENTS_FILE);
+  const requestedExperimentId = process.env.EXPERIMENT_ID;
+  const events = readJsonl(EVENTS_FILE).filter((event: any) =>
+    !requestedExperimentId || event.experimentId === requestedExperimentId
+  );
   const manualCriticalReview = readManualCriticalReview();
 
   const trials = [...groupBy(events, (event) => event.trialId).entries()]
@@ -353,10 +360,18 @@ function main() {
         noiseSource: first.noiseSource ?? null,
         noiseLevelDb: first.noiseLevelDb ?? null,
         runSequence: first.runSequence ?? null,
+        rerunOf: first.rerunOf ?? null,
       };
     })
     .filter(Boolean)
     .sort((a: any, b: any) => a.trialId.localeCompare(b.trialId));
+
+  const successfulReruns = new Set(
+    trials
+      .filter((row: any) => row.rerunOf && row.taskSuccess)
+      .map((row: any) => row.rerunOf)
+  );
+  const effectiveTrials = trials.filter((row: any) => !successfulReruns.has(row.trialId));
 
   const trialColumns = [
     "trialId",
@@ -378,12 +393,13 @@ function main() {
     "noiseSource",
     "noiseLevelDb",
     "runSequence",
+    "rerunOf",
   ];
 
   fs.writeFileSync(path.join(RESULTS_DIR, "trial-results.json"), JSON.stringify(trials, null, 2), "utf8");
   writeCsv(path.join(RESULTS_DIR, "trial-results.csv"), trials, trialColumns);
 
-  const byCondition = groupBy(trials, (trial) => trial.condition);
+  const byCondition = groupBy(effectiveTrials, (trial) => trial.condition);
   const aggregateRows: any[] = [];
 
   for (const [condition, rows] of byCondition.entries()) {
@@ -425,7 +441,7 @@ function main() {
   writeCsv(path.join(RESULTS_DIR, "aggregate-results.csv"), aggregateRows, aggregateColumns);
 
   const byVoice = groupBy(
-    trials.filter((trial: any) => trial.stimulusVoice),
+    effectiveTrials.filter((trial: any) => trial.stimulusVoice),
     (trial) => `${trial.condition}|${trial.stimulusVoice}`
   );
   const voiceAggregateRows: any[] = [];

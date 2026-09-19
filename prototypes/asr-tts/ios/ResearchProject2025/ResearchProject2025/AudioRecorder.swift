@@ -24,7 +24,7 @@ final class AudioRecorder: NSObject {
     func start() throws {
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playAndRecord,
-                                mode: .spokenAudio,
+                                mode: .voiceChat,
                                 options: [.defaultToSpeaker, .allowBluetoothHFP])
         try session.setActive(true)
 
@@ -51,4 +51,3 @@ final class AudioRecorder: NSObject {
         recorder = nil
     }
 }
-

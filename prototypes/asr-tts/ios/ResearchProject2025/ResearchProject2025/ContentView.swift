@@ -142,6 +142,27 @@ struct ContentView: View {
                 loadHistory()
                 startRecordingOnLaunch()
             }
+            // The experiment runner uses devicectl payload URLs to operate the
+            // Record/Stop control without touching the phone between trials.
+            // This is an additive control path; normal user interaction and
+            // the prototype's default recording behaviour are unchanged.
+            .onOpenURL { url in
+                guard url.scheme == "vui-asr" else { return }
+                switch url.host?.lowercased() {
+                case "start":
+                    if !isRecording { startRecordingForExperiment() }
+                case "stop":
+                    if isRecording { toggleRecording() }
+                default:
+                    break
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)) { notification in
+                guard let item = notification.object as? AVPlayerItem,
+                      item === player?.currentItem else { return }
+                isSpeaking = false
+                publishClientStatus(audioPlaybackActive: false)
+            }
         }
     }
 
@@ -151,8 +172,10 @@ struct ContentView: View {
         let audioSession = AVAudioSession.sharedInstance()
 
         do {
-            // Use .playAndRecord category with options to allow Bluetooth and AirPlay
-            try audioSession.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth, .allowAirPlay])
+            // Keep recording available while TTS is playing.  voiceChat gives
+            // the phone's hardware echo canceller a chance to suppress the
+            // speaker output without disabling the microphone.
+            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth, .allowAirPlay])
 
             // Activate the session
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
@@ -198,6 +221,29 @@ struct ContentView: View {
                 debugLog += "Recording error: \(error.localizedDescription)\n"
             }
         }
+    }
+
+    private func startRecordingForExperiment() {
+        do {
+            try recorder.start()
+            isRecording = true
+            transcript = ""
+            debugLog += "🎙️ Experiment recording started.\n"
+        } catch {
+            debugLog += "Experiment recording error: \(error.localizedDescription)\n"
+        }
+    }
+
+    private func publishClientStatus(audioPlaybackActive: Bool) {
+        guard let url = URL(string: "\(serverURLString)/experiment/client-status") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [
+            "audioPlaybackActive": audioPlaybackActive,
+            "playbackStatusAt": ISO8601DateFormatter().string(from: Date())
+        ])
+        URLSession.shared.dataTask(with: request).resume()
     }
 
     // MARK: - ASR + Agent combo
@@ -280,6 +326,8 @@ struct ContentView: View {
         do {
             let (url, _) = try await ttsClient.speak(text: text)
             player = AVPlayer(url: url)
+            isSpeaking = true
+            publishClientStatus(audioPlaybackActive: true)
             player?.play()
             lastTTSURL = url
             debugLog += "🔊 Playing TTS.\n"
@@ -290,6 +338,8 @@ struct ContentView: View {
 
     private func replayTTS(from url: URL) {
         player = AVPlayer(url: url)
+        isSpeaking = true
+        publishClientStatus(audioPlaybackActive: true)
         player?.play()
         debugLog += "🔁 Replaying last TTS.\n"
     }

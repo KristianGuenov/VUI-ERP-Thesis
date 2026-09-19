@@ -35,9 +35,17 @@ function resolveConfig(options) {
   return path.resolve(options.config);
 }
 
-function expandPlan(config) {
+function effectiveExperimentId(config, runId = null) {
+  const requested = runId || process.env.EXPERIMENT_RUN_ID || null;
+  if (!requested) return config.experimentId;
+  const safeRunId = String(requested).replace(/[^a-zA-Z0-9_-]/g, "_");
+  return `${config.experimentId}_${safeRunId}`;
+}
+
+function expandPlan(config, runId = null) {
   const trials = [];
   let runSequence = 0;
+  const experimentId = effectiveExperimentId(config, runId);
 
   for (const prototype of config.prototypeOrder) {
     const prototypeConfig = config.prototypes[prototype];
@@ -45,17 +53,19 @@ function expandPlan(config) {
 
     for (const condition of prototypeConfig.conditions) {
       for (const voice of config.voices) {
-        for (const scenarioId of config.scenarioOrder) {
-          const scenario = config.scenarios[scenarioId];
-          if (!scenario) throw new Error(`Missing scenario configuration: ${scenarioId}`);
+        // Experimental order is intentionally voice-major: complete
+        // S01,S04,S07,S09 three times for one voice, then switch voice.
+        for (const repetition of config.repetitions) {
+          for (const scenarioId of config.scenarioOrder) {
+            const scenario = config.scenarios[scenarioId];
+            if (!scenario) throw new Error(`Missing scenario configuration: ${scenarioId}`);
 
-          for (const repetition of config.repetitions) {
             runSequence += 1;
             const noisy = condition.environment === "industrial_noise";
 
             trials.push({
-              trialId: `${config.experimentId}_${condition.condition}_${voice.id}_${scenarioId}_R${repetition}`,
-              experimentId: config.experimentId,
+              trialId: `${experimentId}_${condition.condition}_${voice.id}_${scenarioId}_R${repetition}`,
+              experimentId,
               condition: condition.condition,
               prototype,
               environment: condition.environment,
@@ -71,10 +81,10 @@ function expandPlan(config) {
               runSequence
             });
           }
+          }
         }
       }
     }
-  }
 
   const ids = new Set(trials.map((trial) => trial.trialId));
   if (ids.size !== trials.length) throw new Error("Experiment plan contains duplicate trial IDs");
@@ -313,6 +323,21 @@ function trialById(trials, trialId) {
   return trial;
 }
 
+function resolveTrial(trials, options) {
+  if (!options["trial-id"]) throw new Error("Missing --trial-id <id>");
+  const exact = trials.find((item) => item.trialId === options["trial-id"]);
+  if (exact) return exact;
+
+  const rerunOf = options["rerun-of"];
+  if (!rerunOf) throw new Error(`Trial not found in plan: ${options["trial-id"]}`);
+  const base = trialById(trials, rerunOf);
+  return {
+    ...base,
+    trialId: options["trial-id"],
+    rerunOf: base.trialId
+  };
+}
+
 function runRequired(command, args) {
   const result = spawnSync(command, args, { stdio: "inherit" });
   if (result.status !== 0) throw new Error(`${command} exited with status ${result.status}`);
@@ -324,7 +349,7 @@ async function playStimulus(config, trials, options, kind) {
   if (!options.server) throw new Error("Missing --server <url>");
   if (!commandAvailable("afplay")) throw new Error("Required playback command is unavailable: afplay");
 
-  const trial = trialById(trials, options["trial-id"]);
+  const trial = resolveTrial(trials, options);
   const status = await getJson(options.server, "/experiment/current-trial");
   if (status.activeTrial?.trialId !== trial.trialId) {
     throw new Error(
@@ -345,9 +370,14 @@ async function playStimulus(config, trials, options, kind) {
 
   const volume = String(config.playback.stimulusVolume);
   runRequired("SwitchAudioSource", ["-s", config.playback.outputDevice, "-t", "output"]);
+  const requestedSystemVolume = options["system-output-volume-percent"] ?? config.playback.systemOutputVolumePercent;
+  const systemVolume = Number(requestedSystemVolume);
+  if (!Number.isInteger(systemVolume) || systemVolume < 0 || systemVolume > 100) {
+    throw new Error(`Invalid --system-output-volume-percent: ${requestedSystemVolume}`);
+  }
   runRequired("osascript", [
     "-e",
-    `set volume output volume ${config.playback.systemOutputVolumePercent} without output muted`
+    `set volume output volume ${systemVolume} without output muted`
   ]);
   console.log(`Playing ${kind}: ${relativeFile} at file gain ${volume}`);
   runRequired("afplay", ["-v", volume, absoluteFile]);
@@ -360,8 +390,13 @@ function validateRun(config, trials, options) {
 
   const expected = trials.filter((trial) => trial.prototype === options.prototype);
   const root = path.resolve(options["experiment-root"]);
-  const eventsPath = path.join(root, "logs", "events.jsonl");
-  const finalStatesDir = path.join(root, "final-states");
+  const eventsPath = options["events-file"]
+    ? path.resolve(options["events-file"])
+    : path.join(root, "logs", "events.jsonl");
+  const finalStatesDir = options["final-states-dir"]
+    ? path.resolve(options["final-states-dir"])
+    : path.join(root, "final-states");
+  const experimentId = effectiveExperimentId(config, options["run-id"]);
   const events = fs.existsSync(eventsPath)
     ? fs.readFileSync(eventsPath, "utf8").split("\n").filter(Boolean).map(JSON.parse)
     : [];
@@ -422,12 +457,12 @@ function validateRun(config, trials, options) {
 
   const expectedIds = new Set(expected.map((trial) => trial.trialId));
   const unexpected = [...byTrial.keys()].filter((trialId) =>
-    trialId.startsWith(`${config.experimentId}_`) && !expectedIds.has(trialId)
+    trialId.startsWith(`${experimentId}_`) && !expectedIds.has(trialId)
   );
   for (const trialId of unexpected) issues.push(`Unexpected trial ID: ${trialId}`);
 
   return {
-    experimentId: config.experimentId,
+    experimentId,
     prototype: options.prototype,
     expectedTrials: expected.length,
     completedTrials: complete,
@@ -441,15 +476,15 @@ function validateRun(config, trials, options) {
 
 function usage() {
   return `Usage:
-  node experimentHarness.mjs plan --config <file> [--out <file>]
-  node experimentHarness.mjs preflight --config <file> --stimulus-root <dir> [--noise-file <file>] [--report <file>]
-  node experimentHarness.mjs start --config <file> --trial-id <id> --server <url>
-  node experimentHarness.mjs play-command --config <file> --trial-id <id> --stimulus-root <dir> --server <url>
-  node experimentHarness.mjs play-confirmation --config <file> --trial-id <id> --stimulus-root <dir> --server <url>
+  node experimentHarness.mjs plan --config <file> [--run-id <id>] [--out <file>]
+  node experimentHarness.mjs preflight --config <file> [--run-id <id>] --stimulus-root <dir> [--noise-file <file>] [--report <file>]
+  node experimentHarness.mjs start --config <file> [--run-id <id>] --trial-id <id> [--rerun-of <id>] --server <url>
+  node experimentHarness.mjs play-command --config <file> [--run-id <id>] --trial-id <id> [--rerun-of <id>] --stimulus-root <dir> --server <url>
+  node experimentHarness.mjs play-confirmation --config <file> [--run-id <id>] --trial-id <id> [--rerun-of <id>] --stimulus-root <dir> --server <url>
   node experimentHarness.mjs end --server <url>
   node experimentHarness.mjs fail --server <url> [--failure-type <type>] [--reason <text>]
   node experimentHarness.mjs status --server <url>
-  node experimentHarness.mjs validate --config <file> --prototype <name> --experiment-root <dir>`;
+  node experimentHarness.mjs validate --config <file> [--run-id <id>] --prototype <name> --experiment-root <dir> [--events-file <file>] [--final-states-dir <dir>]`;
 }
 
 async function main() {
@@ -478,11 +513,11 @@ async function main() {
 
   const configPath = resolveConfig(options);
   const config = readJson(configPath);
-  const trials = expandPlan(config);
+  const trials = expandPlan(config, options["run-id"]);
   assertPlanShape(config, trials);
 
   if (command === "plan") {
-    const payload = JSON.stringify({ experimentId: config.experimentId, trials }, null, 2) + "\n";
+    const payload = JSON.stringify({ experimentId: effectiveExperimentId(config, options["run-id"]), trials }, null, 2) + "\n";
     if (options.out) {
       fs.writeFileSync(path.resolve(options.out), payload, "utf8");
       console.log(`Wrote ${trials.length} trials to ${path.resolve(options.out)}`);
@@ -495,7 +530,7 @@ async function main() {
   if (command === "preflight") {
     const { errors, assets } = preflight(config, trials, options);
     const report = {
-      experimentId: config.experimentId,
+      experimentId: effectiveExperimentId(config, options["run-id"]),
       expectedTrials: trials.length,
       ready: errors.length === 0,
       generatedAt: new Date().toISOString(),
@@ -517,7 +552,7 @@ async function main() {
   if (command === "start") {
     if (!options.server) throw new Error("Missing --server <url>");
     if (!options["trial-id"]) throw new Error("Missing --trial-id <id>");
-    const trial = trialById(trials, options["trial-id"]);
+    const trial = resolveTrial(trials, options);
     assertNoiseStateForTrial(config, trial);
     if (trial.environment === "industrial_noise" &&
         (typeof trial.noiseLevelDb !== "number" || !Number.isFinite(trial.noiseLevelDb))) {

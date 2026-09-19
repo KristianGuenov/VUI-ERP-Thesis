@@ -38,7 +38,12 @@ final class VoiceChatViewModel: ObservableObject {
     // VAD
     private var isRecordingSpeech = false
     private var speechEndTime: Date?
-    private let baseSpeechThreshold: Float = 0.05
+    // VAD correction for the documented physical playback path.  Depending on
+    // the iOS audio-session restart, the same 100% MacBook-speaker stimulus
+    // arrives between about 0.012 and 0.09 RMS.  The noise-floor multiplier
+    // remains the primary guard; this lower floor prevents restart-dependent
+    // loss of a trial without changing server timing or KPI boundaries.
+    private let baseSpeechThreshold: Float = 0.01
 
     private var noiseFloorRMS: Float = 0.0
     private let noiseAlpha: Float = 0.05
@@ -46,6 +51,8 @@ final class VoiceChatViewModel: ObservableObject {
     private let maxDynamicThreshold: Float = 0.15
     private let initialNoiseCalibrationSeconds: TimeInterval = 2.0
     private var vadCalibrationUntil: Date = .distantPast
+    private var audioTapDiagnosticsSent = false
+    private var audioPeakDiagnosticsSent = false
 
     private let silenceGrace: TimeInterval = 2.5
     private var awaitingUserReply = false
@@ -80,6 +87,14 @@ final class VoiceChatViewModel: ObservableObject {
 
     func startConversation() {
         sessionState = .active
+        audioTapDiagnosticsSent = false
+        audioPeakDiagnosticsSent = false
+
+        let audioSession = AVAudioSession.sharedInstance()
+        let route = audioSession.currentRoute.inputs.map { $0.portType.rawValue }.joined(separator: ",")
+        logEssential("Audio inputAvailable=\(audioSession.isInputAvailable) recordPermission=\(audioSession.recordPermission.rawValue) inputs=\(route)")
+        print("[ExperimentAudio] inputAvailable=\(audioSession.isInputAvailable) recordPermission=\(audioSession.recordPermission.rawValue) inputs=\(route)")
+        publishAudioStatus(audioSession, inputRoute: route)
 
         if !isStreaming {
             listenToServer()
@@ -95,6 +110,39 @@ final class VoiceChatViewModel: ObservableObject {
 
         scheduleInactivityTimers()
         stopWakeWordListeningIfNeeded()
+    }
+
+    private func publishAudioStatus(_ session: AVAudioSession, inputRoute: String) {
+        guard let url = URL(string: "\(server)/experiment/client-status") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [
+            "inputAvailable": session.isInputAvailable,
+            "recordPermission": session.recordPermission.rawValue,
+            "inputRoute": inputRoute,
+            "sampleRate": session.sampleRate,
+            "inputNumberOfChannels": session.inputNumberOfChannels
+        ])
+        Task.detached { _ = try? await URLSession.shared.data(for: request) }
+    }
+
+    private func publishAudioTapStatus(audioSession: AVAudioSession, rms: Float?, engineStarted: Bool? = nil) {
+        guard let url = URL(string: "\(server)/experiment/client-status") else { return }
+        var status: [String: Any] = [
+            "audioEngineRunning": audioEngine.isRunning,
+            "inputAvailable": audioSession.isInputAvailable,
+            "recordPermission": audioSession.recordPermission.rawValue,
+            "inputRoute": audioSession.currentRoute.inputs.map { $0.portType.rawValue }.joined(separator: ","),
+            "tapReceivedAt": ISO8601DateFormatter().string(from: Date())
+        ]
+        if let rms { status["tapRms"] = rms }
+        if let engineStarted { status["engineStarted"] = engineStarted }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: status)
+        Task.detached { _ = try? await URLSession.shared.data(for: request) }
     }
 
     func stopConversation() {
@@ -285,7 +333,6 @@ final class VoiceChatViewModel: ObservableObject {
 
         input.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
             guard let self else { return }
-            if self.isAIPlaying { return }
             guard let channel = buffer.floatChannelData?[0] else { return }
 
             // Idle gated: feed wake recognizer only; do not send to server.
@@ -298,6 +345,15 @@ final class VoiceChatViewModel: ObservableObject {
             let frameCount = Int(buffer.frameLength)
             let rms = vDSP.rootMeanSquare(UnsafeBufferPointer(start: channel, count: frameCount))
             let now = Date()
+
+            if !self.audioTapDiagnosticsSent {
+                self.audioTapDiagnosticsSent = true
+                self.publishAudioTapStatus(audioSession: AVAudioSession.sharedInstance(), rms: rms)
+            }
+            if !self.audioPeakDiagnosticsSent && rms > 0.01 {
+                self.audioPeakDiagnosticsSent = true
+                self.publishAudioTapStatus(audioSession: AVAudioSession.sharedInstance(), rms: rms)
+            }
 
             if now < self.vadCalibrationUntil && !self.isRecordingSpeech {
                 let alpha = self.noiseAlpha
@@ -314,6 +370,7 @@ final class VoiceChatViewModel: ObservableObject {
 
             if rms > threshold && !self.isRecordingSpeech {
                 self.isRecordingSpeech = true
+                self.publishAudioTapStatus(audioSession: AVAudioSession.sharedInstance(), rms: rms)
                 self.finalizeUtteranceWorkItem?.cancel()
                 self.finalizeUtteranceWorkItem = nil
             }
@@ -357,9 +414,23 @@ final class VoiceChatViewModel: ObservableObject {
         }
 
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playAndRecord, options: [.defaultToSpeaker])
+            // Keep the microphone tap active while the assistant is speaking.
+            // The previous implementation discarded every input buffer while
+            // isAIPlaying was true, so a user/confirmation utterance that
+            // arrived during a response was lost.  voiceChat enables the
+            // platform echo canceller while preserving the existing speaker
+            // route and the same PCM/KPI timing boundaries.
+            try AVAudioSession.sharedInstance().setCategory(
+                .playAndRecord,
+                mode: .voiceChat,
+                options: [.defaultToSpeaker, .allowBluetooth]
+            )
             try AVAudioSession.sharedInstance().setActive(true)
+            let activeSession = AVAudioSession.sharedInstance()
+            let activeRoute = activeSession.currentRoute.inputs.map { $0.portType.rawValue }.joined(separator: ",")
+            publishAudioStatus(activeSession, inputRoute: activeRoute)
             try audioEngine.start()
+            publishAudioTapStatus(audioSession: activeSession, rms: nil, engineStarted: audioEngine.isRunning)
         } catch {
             Task { @MainActor in self.logEssential("Audio engine error: \(error.localizedDescription)") }
         }
@@ -494,10 +565,10 @@ final class VoiceChatViewModel: ObservableObject {
 
         // Audio
         if type == "response.audio.delta" {
-            if audioEngine.isRunning {
-                audioEngine.pause()
-                await MainActor.run { self.isAIPlaying = true }
-            }
+            // Do not pause the input engine here.  The microphone must remain
+            // available during model playback; the audio session's voiceChat
+            // mode provides echo cancellation for the phone speaker output.
+            await MainActor.run { self.isAIPlaying = true }
             if let base64 = dict["delta"] as? String,
                let audioData = Data(base64Encoded: base64) {
                 pendingAudioData.append(audioData)
@@ -563,6 +634,7 @@ final class VoiceChatViewModel: ObservableObject {
     // MARK: - Playback
 
     private func playAudioChunk(_ data: Data) {
+        publishPlaybackStatus(true)
         Task { @MainActor in self.isAIPlaying = true }
 
         if playbackPlayer.engine == nil {
@@ -633,6 +705,7 @@ final class VoiceChatViewModel: ObservableObject {
 
     private func handlePlaybackFinished() {
         self.isAIPlaying = false
+        publishPlaybackStatus(false)
         self.scheduleInactivityTimers()
 
         if !self.audioEngine.isRunning && self.sessionState != .off {
@@ -644,6 +717,18 @@ final class VoiceChatViewModel: ObservableObject {
         self.status = self.sessionState == .active
             ? self.statusListening
             : (self.sessionState == .idleGated ? self.statusIdleAuto : self.statusStopped)
+    }
+
+    private func publishPlaybackStatus(_ playing: Bool) {
+        guard let url = URL(string: "\(server)/experiment/client-status") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [
+            "audioPlaybackActive": playing,
+            "playbackStatusAt": ISO8601DateFormatter().string(from: Date())
+        ])
+        Task.detached { _ = try? await URLSession.shared.data(for: request) }
     }
 
     // MARK: - Server control

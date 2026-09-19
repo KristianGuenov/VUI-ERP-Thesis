@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app requires microphone access to process the voice experiment recordings.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>This app uses speech recognition only for its wake-word fallback.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>This app connects to the thesis experiment server on the local network.</string>
+</dict>
 </plist>

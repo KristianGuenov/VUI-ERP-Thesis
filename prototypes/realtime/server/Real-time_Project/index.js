@@ -46,9 +46,11 @@ let clients = [];
 
 let lastAudioBytes = 0;
 let responsePending = false;
+let responseRequestedWhilePending = false;
 
 let activeTrial = null;
 let awaitingFinalAcknowledgement = false;
+let latestClientStatus = null;
 
 let confirmationPromptLoggedForActiveTrial = false;
 let confirmationReceivedForActiveTrial = false;
@@ -266,6 +268,7 @@ function trialMetadata(extra = {}) {
     noiseSource: activeTrial.noiseSource,
     noiseLevelDb: activeTrial.noiseLevelDb,
     runSequence: activeTrial.runSequence,
+    rerunOf: activeTrial.rerunOf ?? null,
     ...extra
   };
 }
@@ -414,6 +417,7 @@ function maybeLogConfirmationPromptFallback(parsed) {
 function resetTrialRuntimeFlags() {
   lastAudioBytes = 0;
   responsePending = false;
+  responseRequestedWhilePending = false;
   awaitingFinalAcknowledgement = false;
   confirmationPromptLoggedForActiveTrial = false;
   confirmationReceivedForActiveTrial = false;
@@ -444,6 +448,61 @@ function createFunctionCallOutput(callId, output) {
       output: JSON.stringify(output)
     }
   }));
+}
+
+function requestModelResponse(instructions) {
+  if (!aiSocket || aiSocket.readyState !== WebSocket.OPEN) return false;
+
+  // Keep the server-side response gate in sync for every response, including
+  // confirmation prompts and tool-result acknowledgements.  Previously only
+  // /respond set responsePending, so input arriving while a tool response was
+  // playing could be mistaken for a second command.
+  responsePending = true;
+  aiSocket.send(JSON.stringify(createAudioResponse(instructions)));
+  return true;
+}
+
+function requestBufferedResponse() {
+  if (!aiSocket || aiSocket.readyState !== WebSocket.OPEN) return false;
+  if (responsePending || lastAudioBytes < 4800) return false;
+
+  aiSocket.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
+  aiSocket.send(JSON.stringify(createAudioResponse(
+    "You are a friendly SAP PM assistant. Speak clearly. Keep responses concise and always in English."
+  )));
+  logTrialEvent("audio_committed", {
+    totalAudioBytes: lastAudioBytes,
+    source: "queued_while_response_pending"
+  });
+  logTrialEvent("response_requested", {
+    source: "queued_while_response_pending"
+  });
+  responsePending = true;
+  lastAudioBytes = 0;
+  responseRequestedWhilePending = false;
+  return true;
+}
+
+function flushQueuedResponseIfPossible() {
+  if (!responseRequestedWhilePending || responsePending) return;
+
+  // response.done is emitted before the phone has necessarily finished
+  // playing the buffered audio.  Wait for the client playback diagnostic when
+  // available so a queued utterance is accepted without overlapping audio.
+  const startedAt = Date.now();
+  const poll = () => {
+    if (!responseRequestedWhilePending || responsePending) return;
+    const playbackActive = latestClientStatus?.audioPlaybackActive === true;
+    // Give the client a short opportunity to publish its playback=true
+    // diagnostic; response.done can arrive just before the SSE audio reaches
+    // the phone.
+    if ((!playbackActive && Date.now() - startedAt >= 500) || Date.now() - startedAt >= 15000) {
+      requestBufferedResponse();
+      return;
+    }
+    setTimeout(poll, 100);
+  };
+  poll();
 }
 
 function getSessionInstructions() {
@@ -590,11 +649,11 @@ function validateWorkOrderArgsBeforeExecution(name, args, callId = null) {
 
     createFunctionCallOutput(callId, result);
 
-    aiSocket.send(JSON.stringify(createAudioResponse(`
+    requestModelResponse(`
 The work order ${args.order_id} is not one of the valid experiment IDs.
 Tell the user clearly:
 "Work order ${args.order_id} does not exist in the system. Please repeat the work order ID."
-    `)));
+    `);
 
     return false;
   }
@@ -627,11 +686,11 @@ Tell the user clearly:
 
     createFunctionCallOutput(callId, result);
 
-    aiSocket.send(JSON.stringify(createAudioResponse(`
+    requestModelResponse(`
 The work order ${args.order_id} does not exist in the backend.
 Tell the user clearly:
 "Work order ${args.order_id} does not exist in the system. Please repeat the work order ID."
-    `)));
+    `);
 
     return false;
   }
@@ -699,7 +758,7 @@ async function executeToolAndRespond(name, args, callId = null, source = "model_
     awaitingFinalAcknowledgement = true;
   }
 
-  aiSocket.send(JSON.stringify(createAudioResponse(getToolResponseInstructions(result))));
+  requestModelResponse(getToolResponseInstructions(result));
 }
 
 function holdSensitiveActionForConfirmation(name, args, callId = null) {
@@ -724,7 +783,7 @@ function holdSensitiveActionForConfirmation(name, args, callId = null) {
     message: "Sensitive action requires explicit user confirmation before execution."
   });
 
-  aiSocket.send(JSON.stringify(createAudioResponse(getConfirmationPromptInstructions(name, args))));
+  requestModelResponse(getConfirmationPromptInstructions(name, args));
 }
 
 async function executePendingSensitiveActionIfPossible() {
@@ -758,7 +817,7 @@ function cancelPendingSensitiveActionIfNeeded() {
     reason: "USER_CANCELLED_PENDING_SENSITIVE_ACTION"
   });
 
-  aiSocket.send(JSON.stringify(createAudioResponse(getCancellationInstructions())));
+  requestModelResponse(getCancellationInstructions());
 
   return true;
 }
@@ -969,6 +1028,7 @@ async function connectRealtime() {
 
       if (type === "response.done") {
         responsePending = false;
+        const responseHadFunctionCall = responseContainsFunctionCall(parsed);
 
         logTrialEvent("response_done", {
           responseId: parsed.response?.id ?? parsed.response_id ?? null,
@@ -983,13 +1043,19 @@ async function connectRealtime() {
 
         await executePendingSensitiveActionIfPossible();
 
-        if (awaitingFinalAcknowledgement) {
+        // A response that contains a function call is the tool-request turn,
+        // not the final acknowledgement.  Do not stamp its response.done as
+        // the acknowledgement merely because executeToolAndRespond set the
+        // awaiting flag while handling the call.
+        if (awaitingFinalAcknowledgement && !responseHadFunctionCall) {
           logTrialEvent("final_acknowledgement_completed", {
             responseId: parsed.response?.id ?? parsed.response_id ?? null
           });
 
           awaitingFinalAcknowledgement = false;
         }
+
+        flushQueuedResponseIfPossible();
       }
 
       forwardRealtimeEventToClients(parsed, text);
@@ -1067,13 +1133,15 @@ app.post("/respond", (req, res) => {
   }
 
   if (responsePending) {
-    logTrialEvent("trial_failure_observed", {
-      failureType: "response_in_progress",
-      fatal: false,
-      route: "/respond"
+    // Accept the utterance while the assistant is speaking.  The audio is
+    // already buffered by /audio; defer commit/response.create until the
+    // current response has completed and the client has finished playback.
+    responseRequestedWhilePending = true;
+    logTrialEvent("response_queued_while_pending", {
+      route: "/respond",
+      totalAudioBytes: lastAudioBytes
     });
-
-    return res.status(429).json({ ok: false, error: "response_in_progress" });
+    return res.json({ ok: true, queued: true });
   }
 
   if (lastAudioBytes < 4800) {
@@ -1095,9 +1163,9 @@ app.post("/respond", (req, res) => {
     type: "input_audio_buffer.commit"
   }));
 
-  aiSocket.send(JSON.stringify(createAudioResponse(
+  requestModelResponse(
     "You are a friendly SAP PM assistant. Speak clearly. Keep responses concise and always in English."
-  )));
+  );
 
   logTrialEvent("response_requested");
 
@@ -1110,6 +1178,19 @@ app.post("/respond", (req, res) => {
 /* -------------------------------------------------------------------------- */
 /*                          EXPERIMENT API ROUTES                             */
 /* -------------------------------------------------------------------------- */
+
+app.post("/experiment/client-status", (req, res) => {
+  latestClientStatus = {
+    ...(latestClientStatus || {}),
+    ...req.body,
+    receivedAt: new Date().toISOString()
+  };
+  res.json({ ok: true });
+});
+
+app.get("/experiment/client-status", (_req, res) => {
+  res.json({ ok: true, status: latestClientStatus });
+});
 
 app.post("/experiment/start-trial", (req, res) => {
   try {
@@ -1126,7 +1207,8 @@ app.post("/experiment/start-trial", (req, res) => {
       confirmationStimulusFile = null,
       noiseSource = null,
       noiseLevelDb = null,
-      runSequence = null
+      runSequence = null,
+      rerunOf = null
     } = req.body;
 
     if (activeTrial) {
@@ -1204,6 +1286,7 @@ app.post("/experiment/start-trial", (req, res) => {
       noiseSource,
       noiseLevelDb,
       runSequence,
+      rerunOf,
       status: "running",
       workOrderId: scenario.workOrderId,
       serverAudioStartedAt: null,
@@ -1253,12 +1336,21 @@ app.post("/experiment/end-trial", (req, res) => {
       finalStatePath
     });
 
+    const resetAfterBlock = activeTrial.scenarioId === "S09";
+    if (resetAfterBlock) {
+      logTrialEvent("scenario_block_reset", {
+        source: "end_trial",
+        resetToPrototypeDefaults: true
+      });
+      resetWorkOrders();
+    }
+
     const completedTrial = activeTrial;
 
     activeTrial = null;
     resetTrialRuntimeFlags();
 
-    res.json({ ok: true, trial: completedTrial, finalStatePath });
+    res.json({ ok: true, trial: completedTrial, finalStatePath, resetAfterBlock });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -1288,12 +1380,21 @@ app.post("/experiment/fail-trial", (req, res) => {
       finalStatePath
     });
 
+    const resetAfterBlock = activeTrial.scenarioId === "S09";
+    if (resetAfterBlock) {
+      logTrialEvent("scenario_block_reset", {
+        source: "fail_trial",
+        resetToPrototypeDefaults: true
+      });
+      resetWorkOrders();
+    }
+
     const failedTrial = activeTrial;
 
     activeTrial = null;
     resetTrialRuntimeFlags();
 
-    res.json({ ok: true, trial: failedTrial, finalStatePath });
+    res.json({ ok: true, trial: failedTrial, finalStatePath, resetAfterBlock });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }

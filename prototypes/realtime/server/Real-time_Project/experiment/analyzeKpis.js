@@ -3,9 +3,13 @@ import path from "path";
 
 const ROOT = process.cwd();
 
-const LOG_PATH = path.join(ROOT, "experiment", "logs", "events.jsonl");
+const LOG_PATH = process.env.EXPERIMENT_EVENTS_FILE
+  ? path.resolve(process.env.EXPERIMENT_EVENTS_FILE)
+  : path.join(ROOT, "experiment", "logs", "events.jsonl");
 const SCENARIO_PATH = path.join(ROOT, "experiment", "scenarios", "common_scenarios.json");
-const FINAL_STATES_DIR = path.join(ROOT, "experiment", "final-states");
+const FINAL_STATES_DIR = process.env.EXPERIMENT_FINAL_STATES_DIR
+  ? path.resolve(process.env.EXPERIMENT_FINAL_STATES_DIR)
+  : path.join(ROOT, "experiment", "final-states");
 const RESULTS_DIR = path.join(ROOT, "experiment", "results");
 const MANUAL_REVIEW_DIR = path.join(ROOT, "experiment", "manual-review");
 
@@ -31,11 +35,14 @@ function readEvents() {
     throw new Error(`Missing log file: ${LOG_PATH}`);
   }
 
-  return fs
+  const events = fs
     .readFileSync(LOG_PATH, "utf8")
     .split("\n")
     .filter(Boolean)
     .map((line) => JSON.parse(line));
+
+  const experimentId = process.env.EXPERIMENT_ID;
+  return experimentId ? events.filter((event) => event.experimentId === experimentId) : events;
 }
 
 function parseTime(value) {
@@ -382,8 +389,18 @@ function evaluateTrial(trialId, events, scenarioMap) {
     confirmationStimulusFile: start.confirmationStimulusFile ?? null,
     noiseSource: start.noiseSource ?? null,
     noiseLevelDb: start.noiseLevelDb ?? null,
-    runSequence: start.runSequence ?? null
+    runSequence: start.runSequence ?? null,
+    rerunOf: start.rerunOf ?? null
   };
+}
+
+function collapseSuccessfulReruns(trialResults) {
+  const successfulReruns = new Set(
+    trialResults
+      .filter((row) => row.rerunOf && row.taskSuccess)
+      .map((row) => row.rerunOf)
+  );
+  return trialResults.filter((row) => !successfulReruns.has(row.trialId));
 }
 
 function median(values) {
@@ -546,8 +563,9 @@ function main() {
 
   trialResults.sort((a, b) => a.trialId.localeCompare(b.trialId));
 
-  const aggregates = aggregateResults(trialResults);
-  const voiceAggregates = aggregateResultsByVoice(trialResults);
+  const effectiveTrialResults = collapseSuccessfulReruns(trialResults);
+  const aggregates = aggregateResults(effectiveTrialResults);
+  const voiceAggregates = aggregateResultsByVoice(effectiveTrialResults);
 
   fs.writeFileSync(
     path.join(RESULTS_DIR, "trial-results.json"),

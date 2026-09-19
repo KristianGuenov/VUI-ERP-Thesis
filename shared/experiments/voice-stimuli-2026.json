@@ -68,7 +68,7 @@
   },
   "playback": {
     "stimulusVolume": 1,
-    "systemOutputVolumePercent": 50,
+    "systemOutputVolumePercent": 100,
     "outputDevice": "MacBook Air Speakers",
     "deviceDistanceCm": 50,
     "devicePlacement": "Place the iPhone microphone 50 cm from and facing the centre of the MacBook Air speaker edge; do not move either device during or between prototype blocks."

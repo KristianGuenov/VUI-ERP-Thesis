@@ -49,6 +49,7 @@ type Trial = {
   noiseSource: string | null;
   noiseLevelDb: number | null;
   runSequence: number | null;
+  rerunOf: string | null;
   status: string;
   workOrderId: string;
   serverAudioStartedAt: string | null;
@@ -114,6 +115,7 @@ function getScenarioById(scenarioId: string): any {
 let activeTrial: Trial | null = null;
 let awaitingFinalAcknowledgement = false;
 let pendingAction: PendingAction | null = null;
+let latestClientStatus: Record<string, unknown> | null = null;
 
 const context = {
   lastOrderId: null as string | null,
@@ -137,6 +139,7 @@ function trialMetadata(extra: Record<string, unknown> = {}) {
     noiseSource: activeTrial.noiseSource,
     noiseLevelDb: activeTrial.noiseLevelDb,
     runSequence: activeTrial.runSequence,
+    rerunOf: activeTrial.rerunOf ?? null,
     ...extra,
   };
 }
@@ -1013,6 +1016,7 @@ app.post("/experiment/start-trial", (req, res) => {
       noiseSource = null,
       noiseLevelDb = null,
       runSequence = null,
+      rerunOf = null,
     } = req.body ?? {};
 
     if (activeTrial) {
@@ -1089,6 +1093,7 @@ app.post("/experiment/start-trial", (req, res) => {
       noiseSource: noiseSource == null ? null : String(noiseSource),
       noiseLevelDb: noiseLevelDb == null ? null : Number(noiseLevelDb),
       runSequence: runSequence == null ? null : Number(runSequence),
+      rerunOf: rerunOf == null ? null : String(rerunOf),
       status: "running",
       workOrderId: String(scenario.workOrderId),
       serverAudioStartedAt: null,
@@ -1139,11 +1144,24 @@ app.post("/experiment/end-trial", (_req, res) => {
       finalStatePath,
     });
 
+    const resetAfterBlock = activeTrial.scenarioId === "S09";
+    if (resetAfterBlock) {
+      // S01/S04/S07/S09 are an experimental block.  Restore the canonical
+      // JSON baseline after S09 so the next repetition/voice cannot inherit a
+      // closed WO-2002 or any other mutation from the previous block.
+      const baseline = getScenarioById("S01");
+      saveState(baseline.initialState as WorkOrder[]);
+      logTrialEvent("scenario_block_reset", {
+        source: "end_trial",
+        resetToScenarioId: "S01",
+      });
+    }
+
     const completedTrial = activeTrial;
     activeTrial = null;
     resetContext();
 
-    return res.json({ ok: true, trial: completedTrial, finalStatePath });
+    return res.json({ ok: true, trial: completedTrial, finalStatePath, resetAfterBlock });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     return res.status(500).json({ ok: false, error: message });
@@ -1177,11 +1195,21 @@ app.post("/experiment/fail-trial", (req, res) => {
       finalStatePath,
     });
 
+    const resetAfterBlock = activeTrial.scenarioId === "S09";
+    if (resetAfterBlock) {
+      const baseline = getScenarioById("S01");
+      saveState(baseline.initialState as WorkOrder[]);
+      logTrialEvent("scenario_block_reset", {
+        source: "fail_trial",
+        resetToScenarioId: "S01",
+      });
+    }
+
     const failedTrial = activeTrial;
     activeTrial = null;
     resetContext();
 
-    return res.json({ ok: true, trial: failedTrial, finalStatePath });
+    return res.json({ ok: true, trial: failedTrial, finalStatePath, resetAfterBlock });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     return res.status(500).json({ ok: false, error: message });
@@ -1192,9 +1220,27 @@ app.get("/experiment/current-trial", (_req, res) => {
   return res.json({ ok: true, activeTrial });
 });
 
-app.post("/experiment/reset", (_req, res) => {
+app.post("/experiment/client-status", (req, res) => {
+  latestClientStatus = {
+    ...(latestClientStatus ?? {}),
+    ...(req.body ?? {}),
+    receivedAt: new Date().toISOString(),
+  };
+  return res.json({ ok: true });
+});
+
+app.get("/experiment/client-status", (_req, res) => {
+  return res.json({ ok: true, status: latestClientStatus });
+});
+
+app.post("/experiment/reset", (req, res) => {
   activeTrial = null;
   resetContext();
+
+  const baseline = getScenarioById(String(req.body?.scenarioId ?? "S01"));
+  if (Array.isArray(baseline.initialState)) {
+    saveState(baseline.initialState as WorkOrder[]);
+  }
 
   return res.json({ ok: true, status: "experiment_reset" });
 });

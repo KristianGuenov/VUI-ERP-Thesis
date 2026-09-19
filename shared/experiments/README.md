@@ -29,6 +29,11 @@ Do not move or replace these events:
 The new metadata and harness do not change either timing boundary. Consequently, the
 new latency metric has the same server-side definition as the previous 120 trials.
 
+For the controlled rerun, use an isolated run identifier and execute each planned ID
+once. The within-voice order is S01, S04, S07, S09 for repetitions 1–3, then the next
+voice. The server resets its work-order JSON baseline after S09 so a closed WO-2002
+cannot leak into the next block.
+
 ## Required readiness gates
 
 Before any counted trial:
@@ -43,7 +48,7 @@ Before any counted trial:
    noisy conditions.
 
 The industrial-noise asset is pinned by SHA-256 in the committed plan. Playback is
-fixed at 0.25 file gain (-12.041 dB), 50% macOS output volume, through MacBook Air
+fixed at 0.25 file gain (-12.041 dB), 100% macOS output volume, through MacBook Air
 Speakers. Command stimuli play at 1.0 file gain. The iPhone microphone must remain 50
 cm from and facing the centre of the MacBook speaker edge. The noise player enforces
 the output device and system volume and loops without interruption.
@@ -61,6 +66,7 @@ Run from the repository root:
 ```sh
 node shared/scripts/experimentHarness.mjs plan \
   --config shared/experiments/voice-stimuli-2026.json \
+  --run-id run2 \
   --out /tmp/voice-stimuli-expanded.json
 
 node shared/scripts/experimentHarness.mjs preflight \

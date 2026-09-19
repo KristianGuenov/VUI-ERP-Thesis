@@ -25,16 +25,25 @@ servers reject duplicates.
 ## Fixed protocol
 
 The order is Realtime C3 quiet, Realtime C4 industrial noise, ASR-TTS C1 quiet, then
-ASR-TTS C2 industrial noise. Within each condition, run V1, V2, and V3. Each voice has
-S01, S04, S07, and S09 with R1–R3.
+ASR-TTS C2 industrial noise. Within each condition, complete one voice before switching
+voices: V1 S01, S04, S07, S09 (R1), then the same four scenarios (R2), then (R3), then
+switch to V2 and repeat, then V3. S09 is never followed immediately by another S09.
+At the end of each S09 trial the server restores the canonical JSON work-order baseline
+before the next repetition or voice begins. This prevents WO-2002 state from leaking
+between blocks.
 
 Command and confirmation files use 1.0 file gain. The background noise uses the pinned
-factory-noise WAV at 0.25 gain (-12.041 dB). Both use MacBook Air Speakers at 50%
+factory-noise WAV at 0.25 gain (-12.041 dB). Both use MacBook Air Speakers at 100%
 macOS output volume and the same physical path. Noise runs without interruption for
 the full 36-trial C4 block and again for the full 36-trial C2 block.
 
 Latency remains measured from `audio_first_packet_received` through the final
 `final_acknowledgement_completed`. Trial-control time is not part of latency.
+
+The Realtime client keeps its microphone tap active while assistant audio is playing;
+the iOS voiceChat audio mode supplies echo cancellation. The server also queues a
+spoken turn that arrives while a response is pending and processes it after playback,
+instead of rejecting it with `response_in_progress`.
 
 ## Procedure
 
@@ -55,6 +64,19 @@ entries, and `errors` is empty. Every file is checked against its pinned SHA-256
 **If it fails:** Do not start a trial. Restore the missing or changed file, reconnect
 the configured output device, or reinstall the named missing playback command. Never
 edit a pinned hash merely to make an unexplained file change pass.
+
+For a fresh pass, use an isolated run identifier and output directory so the historical
+diagnostic log is not mixed with the new one:
+
+```sh
+EXPERIMENT_EVENTS_FILE="$PWD/experiment/run2/logs/events.jsonl" \
+EXPERIMENT_FINAL_STATES_DIR="$PWD/experiment/run2/final-states" \
+npm run start
+```
+
+Pass `--run-id run2` to the harness and use `experiment/run2` as its
+`--experiment-root`. The harness then treats each new trial ID as a single counted
+attempt and can resume only uncompleted IDs after an interruption.
 
 ### Step 2: Start the selected prototype
 
@@ -81,7 +103,7 @@ swift shared/scripts/noisePlayback.swift \
   shared/experiments/voice-stimuli-2026.json
 ```
 
-**Expected result:** It reports MacBook Air Speakers, 50% system volume, 0.25 file gain,
+**Expected result:** It reports MacBook Air Speakers, 100% system volume, 0.25 file gain,
 and -12.041 dB. The factory noise is audible and continues across file boundaries.
 
 **If it fails:** Stop the block. Restore the pinned noise file or configured speaker.
@@ -119,7 +141,7 @@ node shared/scripts/experimentHarness.mjs play-command \
 ```
 
 **Expected result:** The harness verifies that this ID is active, verifies the file
-hash, enforces MacBook Air Speakers at 50%, plays the planned file at 1.0 gain, and
+hash, enforces MacBook Air Speakers at 100%, plays the planned file at 1.0 gain, and
 reports completion. On ASR-TTS, tap **Stop** after playback to submit the recording.
 
 **If it fails:** Do not substitute another file or play it manually. Correct the
