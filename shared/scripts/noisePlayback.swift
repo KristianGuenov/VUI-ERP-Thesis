@@ -1,6 +1,7 @@
 #!/usr/bin/env swift
 
 import AVFoundation
+import Darwin
 import Foundation
 
 func fail(_ message: String) -> Never {
@@ -23,17 +24,56 @@ do {
 
 guard
     let root = try? JSONSerialization.jsonObject(with: configData) as? [String: Any],
+    let playback = root["playback"] as? [String: Any],
     let noise = root["noise"] as? [String: Any],
     let localFile = noise["localFile"] as? String,
     let playbackVolume = noise["playbackVolume"] as? Double,
-    let outputVolume = noise["systemOutputVolumePercent"] as? Int,
-    let outputDevice = noise["outputDevice"] as? String
+    let noiseSha256 = noise["sha256"] as? String,
+    let statusFile = noise["statusFile"] as? String,
+    let outputVolume = playback["systemOutputVolumePercent"] as? Int,
+    let outputDevice = playback["outputDevice"] as? String
 else {
     fail("Noise playback settings are missing or invalid in \(configURL.path)")
 }
 
 guard FileManager.default.fileExists(atPath: localFile) else {
     fail("Industrial-noise file is missing: \(localFile)")
+}
+
+let statusURL = URL(fileURLWithPath: statusFile)
+if let existingData = try? Data(contentsOf: statusURL),
+   let existing = try? JSONSerialization.jsonObject(with: existingData) as? [String: Any],
+   let existingPidNumber = existing["pid"] as? NSNumber,
+   kill(existingPidNumber.int32Value, 0) == 0 {
+    fail("Industrial-noise playback is already running with PID \(existingPidNumber.int32Value)")
+}
+try? FileManager.default.removeItem(at: statusURL)
+
+func capture(_ executable: String, _ arguments: [String]) -> String {
+    let process = Process()
+    let output = Pipe()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+    process.arguments = [executable] + arguments
+    process.standardOutput = output
+    process.standardError = FileHandle.standardError
+    do {
+        try process.run()
+        process.waitUntilExit()
+    } catch {
+        fail("Unable to run \(executable): \(error.localizedDescription)")
+    }
+    guard process.terminationStatus == 0 else {
+        fail("\(executable) exited with status \(process.terminationStatus)")
+    }
+    return String(data: output.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+}
+
+let actualNoiseHash = capture("shasum", ["-a", "256", localFile])
+    .split(separator: " ")
+    .first
+    .map(String.init) ?? ""
+guard actualNoiseHash == noiseSha256 else {
+    fail("Industrial-noise SHA-256 mismatch: expected \(noiseSha256), found \(actualNoiseHash)")
 }
 
 func run(_ executable: String, _ arguments: [String]) {
@@ -69,6 +109,24 @@ guard player.play() else {
     fail("AVAudioPlayer refused to start industrial-noise playback")
 }
 
+let status: [String: Any] = [
+    "pid": ProcessInfo.processInfo.processIdentifier,
+    "startedAt": ISO8601DateFormatter().string(from: Date()),
+    "localFile": localFile,
+    "sha256": actualNoiseHash,
+    "playbackVolume": playbackVolume,
+    "outputDevice": outputDevice,
+    "systemOutputVolumePercent": outputVolume
+]
+
+do {
+    let statusData = try JSONSerialization.data(withJSONObject: status, options: [.prettyPrinted, .sortedKeys])
+    try statusData.write(to: statusURL, options: .atomic)
+} catch {
+    player.stop()
+    fail("Unable to write noise-player status: \(error.localizedDescription)")
+}
+
 let levelDb = 20 * log10(playbackVolume)
 let formattedLevelDb = String(format: "%.3f", levelDb)
 print("Industrial noise running continuously. Press Control-C to stop.")
@@ -83,6 +141,7 @@ let stopSignals = [SIGINT, SIGTERM].map { signalNumber -> DispatchSourceSignal i
     let source = DispatchSource.makeSignalSource(signal: signalNumber, queue: .main)
     source.setEventHandler {
         player.stop()
+        try? FileManager.default.removeItem(at: statusURL)
         exit(0)
     }
     source.resume()

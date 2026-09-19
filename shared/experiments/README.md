@@ -48,6 +48,12 @@ Speakers. Command stimuli play at 1.0 file gain. The iPhone microphone must rema
 cm from and facing the centre of the MacBook speaker edge. The noise player enforces
 the output device and system volume and loops without interruption.
 
+The YouTube source is the same recording used previously. The old experiment did not
+log its output device, system volume, file gain, or microphone distance, and no local
+record of those settings was found. Therefore the source recording is historically
+matched, but an identical old-versus-new acoustic noise level cannot be claimed. The
+fixed settings above make all 72 new noisy trials internally reproducible.
+
 ## Harness examples
 
 Run from the repository root:
@@ -67,9 +73,14 @@ swift shared/scripts/noisePlayback.swift \
 ```
 
 The optional preflight report records byte sizes and SHA-256 hashes for every stimulus
-and the noise file, so the exact audio inputs can be audited later.
+and the noise file, so the exact audio inputs can be audited later. The hashes are also
+pinned in the plan, so a changed asset makes preflight fail rather than silently
+creating a new manifest.
 
 `start`, `end`, `fail`, and `status` wrap the existing experiment HTTP endpoints.
+`start` refuses a quiet trial while the noise player is running and refuses a noisy
+trial unless the verified player state is active. `play-command` and
+`play-confirmation` verify the active trial and audio hash before playback.
 `validate` checks event cardinality, confirmation order, terminal events, timing events,
 and final-state files for all 72 trials belonging to one prototype. A deliberately
 failed trial still requires a start, terminal event, and final state; missing timing or

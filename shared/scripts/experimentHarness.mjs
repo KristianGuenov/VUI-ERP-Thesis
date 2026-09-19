@@ -120,8 +120,66 @@ function describeAsset(filePath, kind, relativeFile = null) {
   };
 }
 
+function assertAssetHash(config, asset) {
+  const expectedHash = asset.kind === "industrial_noise"
+    ? config.noise.sha256
+    : config.stimulusSha256?.[asset.relativeFile];
+
+  if (!expectedHash) {
+    throw new Error(`No pinned SHA-256 for ${asset.relativeFile || asset.absoluteFile}`);
+  }
+  if (asset.sha256 !== expectedHash) {
+    throw new Error(
+      `SHA-256 mismatch for ${asset.relativeFile || asset.absoluteFile}: ` +
+      `expected ${expectedHash}, found ${asset.sha256}`
+    );
+  }
+}
+
 function commandAvailable(command) {
   return spawnSync("/usr/bin/env", ["which", command], { encoding: "utf8" }).status === 0;
+}
+
+function noisePlaybackState(config) {
+  const statusFile = config.noise?.statusFile;
+  if (!statusFile || !fs.existsSync(statusFile)) return { running: false, statusFile };
+
+  try {
+    const state = readJson(statusFile);
+    process.kill(Number(state.pid), 0);
+    return { running: true, statusFile, state };
+  } catch {
+    return { running: false, statusFile };
+  }
+}
+
+function assertNoiseStateForTrial(config, trial) {
+  const playback = noisePlaybackState(config);
+  const noisy = trial.environment === "industrial_noise";
+
+  if (!noisy && playback.running) {
+    throw new Error("Refusing to start a quiet trial while industrial-noise playback is running");
+  }
+  if (!noisy) return;
+  if (!playback.running) {
+    throw new Error(
+      `Refusing to start noisy trial: continuous-noise player is not running ` +
+      `(${playback.statusFile || "noise.statusFile is unset"})`
+    );
+  }
+
+  const state = playback.state;
+  const mismatches = [];
+  if (state.localFile !== config.noise.localFile) mismatches.push("localFile");
+  if (state.sha256 !== config.noise.sha256) mismatches.push("sha256");
+  if (state.playbackVolume !== config.noise.playbackVolume) mismatches.push("playbackVolume");
+  if (state.outputDevice !== config.playback.outputDevice) mismatches.push("outputDevice");
+  if (state.systemOutputVolumePercent !== config.playback.systemOutputVolumePercent) {
+    mismatches.push("systemOutputVolumePercent");
+  }
+  if (mismatches.length) {
+    throw new Error(`Refusing noisy trial: noise-player state mismatch in ${mismatches.join(", ")}`);
+  }
 }
 
 function preflight(config, trials, options) {
@@ -145,7 +203,13 @@ function preflight(config, trials, options) {
       if (!fs.existsSync(absoluteFile)) {
         errors.push(`Missing stimulus: ${absoluteFile}`);
       } else {
-        assets.push(describeAsset(absoluteFile, "stimulus", relativeFile));
+        const asset = describeAsset(absoluteFile, "stimulus", relativeFile);
+        assets.push(asset);
+        try {
+          assertAssetHash(config, asset);
+        } catch (error) {
+          errors.push(error.message);
+        }
       }
     }
   }
@@ -158,10 +222,10 @@ function preflight(config, trials, options) {
   } else {
     const noiseAsset = describeAsset(path.resolve(noiseFile), "industrial_noise");
     assets.push(noiseAsset);
-    if (config.noise.sha256 && noiseAsset.sha256 !== config.noise.sha256) {
-      errors.push(
-        `Industrial-noise SHA-256 mismatch: expected ${config.noise.sha256}, found ${noiseAsset.sha256}`
-      );
+    try {
+      assertAssetHash(config, noiseAsset);
+    } catch (error) {
+      errors.push(error.message);
     }
   }
 
@@ -181,30 +245,38 @@ function preflight(config, trials, options) {
     }
   }
 
-  if (!Number.isInteger(config.noise.systemOutputVolumePercent) ||
-      config.noise.systemOutputVolumePercent < 0 ||
-      config.noise.systemOutputVolumePercent > 100) {
-    errors.push("noise.systemOutputVolumePercent must be an integer from 0 to 100");
+  if (typeof config.playback?.stimulusVolume !== "number" ||
+      config.playback.stimulusVolume <= 0 || config.playback.stimulusVolume > 1) {
+    errors.push("playback.stimulusVolume must be greater than 0 and no more than 1");
   }
 
-  if (!config.noise.outputDevice) errors.push("noise.outputDevice must be configured");
-  if (!Number.isFinite(config.noise.deviceDistanceCm) || config.noise.deviceDistanceCm <= 0) {
-    errors.push("noise.deviceDistanceCm must be a positive number");
+  if (!Number.isInteger(config.playback?.systemOutputVolumePercent) ||
+      config.playback.systemOutputVolumePercent < 0 ||
+      config.playback.systemOutputVolumePercent > 100) {
+    errors.push("playback.systemOutputVolumePercent must be an integer from 0 to 100");
   }
 
-  for (const command of ["swift", "SwitchAudioSource", "osascript"]) {
+  if (!config.playback?.outputDevice) errors.push("playback.outputDevice must be configured");
+  if (!Number.isFinite(config.playback?.deviceDistanceCm) || config.playback.deviceDistanceCm <= 0) {
+    errors.push("playback.deviceDistanceCm must be a positive number");
+  }
+  if (!config.noise.statusFile || !path.isAbsolute(config.noise.statusFile)) {
+    errors.push("noise.statusFile must be an absolute path");
+  }
+
+  for (const command of ["swift", "SwitchAudioSource", "osascript", "afplay", "shasum"]) {
     if (!commandAvailable(command)) errors.push(`Required noise-playback command is unavailable: ${command}`);
   }
 
-  if (commandAvailable("SwitchAudioSource") && config.noise.outputDevice) {
+  if (commandAvailable("SwitchAudioSource") && config.playback?.outputDevice) {
     const outputDevices = spawnSync("SwitchAudioSource", ["-a", "-t", "output"], {
       encoding: "utf8"
     });
     const available = outputDevices.status === 0
       ? outputDevices.stdout.split("\n").map((line) => line.trim()).filter(Boolean)
       : [];
-    if (!available.includes(config.noise.outputDevice)) {
-      errors.push(`Configured output device is unavailable: ${config.noise.outputDevice}`);
+    if (!available.includes(config.playback.outputDevice)) {
+      errors.push(`Configured output device is unavailable: ${config.playback.outputDevice}`);
     }
   }
 
@@ -239,6 +311,47 @@ function trialById(trials, trialId) {
   const trial = trials.find((item) => item.trialId === trialId);
   if (!trial) throw new Error(`Trial not found in plan: ${trialId}`);
   return trial;
+}
+
+function runRequired(command, args) {
+  const result = spawnSync(command, args, { stdio: "inherit" });
+  if (result.status !== 0) throw new Error(`${command} exited with status ${result.status}`);
+}
+
+async function playStimulus(config, trials, options, kind) {
+  if (!options["trial-id"]) throw new Error("Missing --trial-id <id>");
+  if (!options["stimulus-root"]) throw new Error("Missing --stimulus-root <directory>");
+  if (!options.server) throw new Error("Missing --server <url>");
+  if (!commandAvailable("afplay")) throw new Error("Required playback command is unavailable: afplay");
+
+  const trial = trialById(trials, options["trial-id"]);
+  const status = await getJson(options.server, "/experiment/current-trial");
+  if (status.activeTrial?.trialId !== trial.trialId) {
+    throw new Error(
+      `Refusing playback: active trial is ${status.activeTrial?.trialId || "none"}, ` +
+      `requested ${trial.trialId}`
+    );
+  }
+  const relativeFile = kind === "confirmation"
+    ? trial.confirmationStimulusFile
+    : trial.stimulusFile;
+  if (!relativeFile) {
+    throw new Error(`${trial.trialId} has no ${kind} stimulus`);
+  }
+
+  const absoluteFile = path.join(path.resolve(options["stimulus-root"]), relativeFile);
+  if (!fs.existsSync(absoluteFile)) throw new Error(`Missing stimulus: ${absoluteFile}`);
+  assertAssetHash(config, describeAsset(absoluteFile, "stimulus", relativeFile));
+
+  const volume = String(config.playback.stimulusVolume);
+  runRequired("SwitchAudioSource", ["-s", config.playback.outputDevice, "-t", "output"]);
+  runRequired("osascript", [
+    "-e",
+    `set volume output volume ${config.playback.systemOutputVolumePercent} without output muted`
+  ]);
+  console.log(`Playing ${kind}: ${relativeFile} at file gain ${volume}`);
+  runRequired("afplay", ["-v", volume, absoluteFile]);
+  console.log(`Completed ${kind}: ${trial.trialId}`);
 }
 
 function validateRun(config, trials, options) {
@@ -331,6 +444,8 @@ function usage() {
   node experimentHarness.mjs plan --config <file> [--out <file>]
   node experimentHarness.mjs preflight --config <file> --stimulus-root <dir> [--noise-file <file>] [--report <file>]
   node experimentHarness.mjs start --config <file> --trial-id <id> --server <url>
+  node experimentHarness.mjs play-command --config <file> --trial-id <id> --stimulus-root <dir> --server <url>
+  node experimentHarness.mjs play-confirmation --config <file> --trial-id <id> --stimulus-root <dir> --server <url>
   node experimentHarness.mjs end --server <url>
   node experimentHarness.mjs fail --server <url> [--failure-type <type>] [--reason <text>]
   node experimentHarness.mjs status --server <url>
@@ -384,7 +499,9 @@ async function main() {
       expectedTrials: trials.length,
       ready: errors.length === 0,
       generatedAt: new Date().toISOString(),
+      historicalNoiseComparability: config.historicalNoiseComparability,
       noiseLevelDb: config.noise.levelDb,
+      playback: config.playback,
       noise: config.noise,
       assets,
       errors
@@ -401,11 +518,22 @@ async function main() {
     if (!options.server) throw new Error("Missing --server <url>");
     if (!options["trial-id"]) throw new Error("Missing --trial-id <id>");
     const trial = trialById(trials, options["trial-id"]);
+    assertNoiseStateForTrial(config, trial);
     if (trial.environment === "industrial_noise" &&
         (typeof trial.noiseLevelDb !== "number" || !Number.isFinite(trial.noiseLevelDb))) {
       throw new Error("Refusing to start noisy trial before noise.levelDb is fixed in the plan");
     }
     console.log(JSON.stringify(await postJson(options.server, "/experiment/start-trial", trial), null, 2));
+    return;
+  }
+
+  if (command === "play-command" || command === "play-confirmation") {
+    await playStimulus(
+      config,
+      trials,
+      options,
+      command === "play-command" ? "command" : "confirmation"
+    );
     return;
   }
 

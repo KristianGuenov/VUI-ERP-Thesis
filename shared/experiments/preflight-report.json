@@ -2,8 +2,20 @@
   "experimentId": "VOICE_STIMULI_2026",
   "expectedTrials": 144,
   "ready": true,
-  "generatedAt": "2026-09-19T15:15:53.182Z",
+  "generatedAt": "2026-09-19T15:36:59.894Z",
+  "historicalNoiseComparability": {
+    "sourceRecordingMatched": true,
+    "historicalAcousticSettingsAvailable": false,
+    "statement": "The exact YouTube source matches the previous experiment. Historical output volume, file gain, output device, and microphone distance were not logged, so identical acoustic exposure to the previous experiment cannot be demonstrated. The present experiment uses the fixed documented playback protocol below."
+  },
   "noiseLevelDb": -12.041,
+  "playback": {
+    "stimulusVolume": 1,
+    "systemOutputVolumePercent": 50,
+    "outputDevice": "MacBook Air Speakers",
+    "deviceDistanceCm": 50,
+    "devicePlacement": "Place the iPhone microphone 50 cm from and facing the centre of the MacBook Air speaker edge; do not move either device during or between prototype blocks."
+  },
   "noise": {
     "continuous": true,
     "title": "Real factory noise recording",
@@ -17,11 +29,8 @@
     "sourcePeakDbfs": 0,
     "playbackVolume": 0.25,
     "levelDb": -12.041,
-    "levelReference": "20*log10(AVAudioPlayer volume); command stimuli use 1.0 file gain",
-    "systemOutputVolumePercent": 50,
-    "outputDevice": "MacBook Air Speakers",
-    "deviceDistanceCm": 50,
-    "devicePlacement": "Place the iPhone microphone 50 cm from and facing the centre of the MacBook Air speaker edge; do not move either device during or between prototype blocks."
+    "levelReference": "20*log10(AVAudioPlayer volume); command stimuli use playback.stimulusVolume",
+    "statusFile": "/tmp/vui-erp-thesis-noise-playback.json"
   },
   "assets": [
     {

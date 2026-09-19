@@ -1,6 +1,11 @@
 {
   "experimentId": "VOICE_STIMULI_2026",
   "description": "Four common scenarios, three repetitions, three recorded voices, quiet and continuous industrial-noise conditions, across both thesis prototypes.",
+  "historicalNoiseComparability": {
+    "sourceRecordingMatched": true,
+    "historicalAcousticSettingsAvailable": false,
+    "statement": "The exact YouTube source matches the previous experiment. Historical output volume, file gain, output device, and microphone distance were not logged, so identical acoustic exposure to the previous experiment cannot be demonstrated. The present experiment uses the fixed documented playback protocol below."
+  },
   "scenarioOrder": ["S01", "S04", "S07", "S09"],
   "scenarios": {
     "S01": { "requiresConfirmation": true },
@@ -44,6 +49,30 @@
       }
     }
   ],
+  "stimulusSha256": {
+    "v1/S01_Add_20_minutes_V1_Male_US.wav": "904bfddeb50c96de41bbac2a721a5bb56b7c048f68b940e73b03f62a25fb9db4",
+    "v1/S04_Close_operation_V1_Male_US.wav": "f4f7e739f75aef02efa8290ae3d4948be619786d54ecd0d1a577a46ecbaf4673",
+    "v1/S07_Close_work_order_V1_Male_US.wav": "25aa573feb3c7d8fd31b16ad06193e6e79ab4feccd8753d6b6c7233175c8de6c",
+    "v1/S09_Show_summary_V1_Male_US.wav": "451cf29b193a2004b7b548a9b30e0bae66288f5338cb54b16589a7f68dcfd52e",
+    "v1/S07_Confirmation_V1_Male_US.wav": "d5fbf40b8f525c7aa59ae14ef5499ed1bc283eb4baca9bb604f17e154310ae8d",
+    "v2/S01_Add_20_minutes_V2_Male_UK.wav": "3c28cae00208048f018ac9903396d96d1081837a1464f080af7b891f8b8b3667",
+    "v2/S04_Close_operation_V2_Male_UK.wav": "8d9b971fb569eca789906e6d2345dca7022c92f8ae933236371861cadaf968f1",
+    "v2/S07_Close_work_order_V2_Male_UK.wav": "97e8d14f279ed9c4bea53dd8b01f2ee05cc46263e579241be1d1fc59bc7a0b5e",
+    "v2/S09_Show_summary_V2_Male_UK.wav": "2e3d4610fb49c5aee8fd2c2ca9363b3f511a5d8383b95a6ea323dfe2766c17fc",
+    "v2/S07_Confirmation_V2_Male_UK.wav": "d1ee2776058a4d0548ca3792f2d30ffa3c78bdeaa01b3969bcbf37eee96d981c",
+    "v3/S01_Add_20_minutes_V3_Female_US.wav": "1e10ce82ae3b0726435ef74f487b51479f0ea82872a075614dc8f135ca7edd88",
+    "v3/S04_Close_operation_V3_Female_US.wav": "a579d3c9a59a2355f4e1e4239216aea678ce58cf62a61b4c0a188209eb0d4a02",
+    "v3/S07_Close_work_order_V3_Female_US.wav": "125a806c66755a34a06467054b96230bb27d2b04e5e6a0fa9e343d99bfcbc25e",
+    "v3/S09_Show_summary_V3_Female_US.wav": "807a53628f868a530ba757805e790395cd768f2eb6e8a2e39844f0406acbb4ea",
+    "v3/S07_Confirmation_V3_Female_US.wav": "86d9821b66327514e2bfeb4938ced9e1857fc01498e76b1dcaeae7c2a6dbdea5"
+  },
+  "playback": {
+    "stimulusVolume": 1,
+    "systemOutputVolumePercent": 50,
+    "outputDevice": "MacBook Air Speakers",
+    "deviceDistanceCm": 50,
+    "devicePlacement": "Place the iPhone microphone 50 cm from and facing the centre of the MacBook Air speaker edge; do not move either device during or between prototype blocks."
+  },
   "prototypeOrder": ["realtime", "asr_tts"],
   "prototypes": {
     "realtime": {
@@ -74,10 +103,7 @@
     "sourcePeakDbfs": 0,
     "playbackVolume": 0.25,
     "levelDb": -12.041,
-    "levelReference": "20*log10(AVAudioPlayer volume); command stimuli use 1.0 file gain",
-    "systemOutputVolumePercent": 50,
-    "outputDevice": "MacBook Air Speakers",
-    "deviceDistanceCm": 50,
-    "devicePlacement": "Place the iPhone microphone 50 cm from and facing the centre of the MacBook Air speaker edge; do not move either device during or between prototype blocks."
+    "levelReference": "20*log10(AVAudioPlayer volume); command stimuli use playback.stimulusVolume",
+    "statusFile": "/tmp/vui-erp-thesis-noise-playback.json"
   }
 }

@@ -11,6 +11,8 @@
     "experiment:plan": "node ../../../../shared/scripts/experimentHarness.mjs plan --config ../../../../shared/experiments/voice-stimuli-2026.json",
     "experiment:preflight": "node ../../../../shared/scripts/experimentHarness.mjs preflight --config ../../../../shared/experiments/voice-stimuli-2026.json",
     "experiment:noise": "swift ../../../../shared/scripts/noisePlayback.swift ../../../../shared/experiments/voice-stimuli-2026.json",
+    "experiment:play-command": "node ../../../../shared/scripts/experimentHarness.mjs play-command --config ../../../../shared/experiments/voice-stimuli-2026.json",
+    "experiment:play-confirmation": "node ../../../../shared/scripts/experimentHarness.mjs play-confirmation --config ../../../../shared/experiments/voice-stimuli-2026.json",
     "experiment:validate": "node ../../../../shared/scripts/experimentHarness.mjs validate --config ../../../../shared/experiments/voice-stimuli-2026.json --prototype realtime --experiment-root experiment"
   },
   "dependencies": {
