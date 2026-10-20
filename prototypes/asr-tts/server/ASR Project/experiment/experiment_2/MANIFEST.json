@@ -1,0 +1,12 @@
+{
+  "experiment": 2,
+  "prototype": "asr_tts",
+  "conditions": {
+    "C1": 36,
+    "C2": 36
+  },
+  "trials": 72,
+  "finalStateSnapshots": 72,
+  "voiceProfiles": 3,
+  "scenarios": 4
+}

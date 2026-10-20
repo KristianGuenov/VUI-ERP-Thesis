@@ -1,0 +1,30 @@
+[
+  {
+    "condition": "C3",
+    "prototype": "realtime",
+    "environment": "quiet",
+    "totalTrials": 36,
+    "taskSuccessRate": 0.8611111111111112,
+    "criticalExecutionErrorRate": 0.1388888888888889,
+    "meanEntityAccuracy": 0.8888888888888888,
+    "medianLatencyMs": 27372,
+    "minLatencyMs": 1009,
+    "maxLatencyMs": 63127,
+    "failureTimeoutRate": 0,
+    "confirmationComplianceRate": 0.8888888888888888
+  },
+  {
+    "condition": "C4",
+    "prototype": "realtime",
+    "environment": "industrial_noise",
+    "totalTrials": 36,
+    "taskSuccessRate": 0.7777777777777778,
+    "criticalExecutionErrorRate": 0.2222222222222222,
+    "meanEntityAccuracy": 0.9166666666666666,
+    "medianLatencyMs": 32155.5,
+    "minLatencyMs": 996,
+    "maxLatencyMs": 69303,
+    "failureTimeoutRate": 0,
+    "confirmationComplianceRate": 0.8518518518518519
+  }
+]

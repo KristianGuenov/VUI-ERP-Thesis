@@ -1,0 +1,10 @@
+{
+  "experiment": 1,
+  "prototype": "realtime",
+  "conditions": {
+    "C3": 30,
+    "C4": 30
+  },
+  "trials": 60,
+  "finalStateSnapshots": 60
+}

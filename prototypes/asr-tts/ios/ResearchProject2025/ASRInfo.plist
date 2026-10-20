@@ -12,6 +12,9 @@
 	<key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSMicrophoneUsageDescription</key><string>This app requires microphone access to record speech for ASR</string>
+	<key>NSLocalNetworkUsageDescription</key><string>This app connects to the thesis prototype server on the local network.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict><key>NSAllowsLocalNetworking</key><true/></dict>
 	<key>NSBluetoothAlwaysUsageDescription</key><string>Bluetooth access may be used for external microphones or speakers.</string>
 	<key>CFBundleURLTypes</key>
 	<array><dict>

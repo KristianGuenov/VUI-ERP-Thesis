@@ -1,0 +1,108 @@
+{
+  "trial": {
+    "trialId": "SELF_C3_S04_R3",
+    "condition": "C3",
+    "prototype": "realtime",
+    "environment": "quiet",
+    "scenarioId": "S04",
+    "repetition": 3,
+    "status": "running",
+    "workOrderId": "WO-2002",
+    "serverAudioStartedAt": "2026-05-19T15:48:15.182Z",
+    "finalAcknowledgementAt": null
+  },
+  "workOrder": {
+    "OrderHeader": {
+      "order_id": "WO-2002",
+      "description": "Fix conveyor belt alignment",
+      "status": {
+        "system_status": [
+          "REL",
+          "PCNF"
+        ],
+        "user_status": [
+          "IN_PROCESS"
+        ]
+      },
+      "assigned_to": "TECH001",
+      "created_on": "2026-05-09T00:00:00.000Z",
+      "due_date": "2026-05-30T12:00:00.000Z",
+      "last_changed": "2026-05-19T15:48:54.388Z"
+    },
+    "Operations": [
+      {
+        "operation_id": "OP-A",
+        "description": "Inspect belt",
+        "status": "closed",
+        "planned_duration_minutes": 40,
+        "actual_duration_minutes": 40,
+        "is_confirmed": true,
+        "started_at": "2026-05-09T08:00:00.000Z",
+        "completed_at": "2026-05-09T08:40:00.000Z"
+      },
+      {
+        "operation_id": "OP-B",
+        "description": "Adjust rollers",
+        "status": "closed",
+        "planned_duration_minutes": 35,
+        "actual_duration_minutes": 0,
+        "is_confirmed": true,
+        "started_at": "2026-05-19T15:48:54.388Z",
+        "completed_at": "2026-05-19T15:48:54.388Z"
+      }
+    ],
+    "Totals": {
+      "total_planned_time_minutes": 75,
+      "total_actual_time_minutes": 40
+    },
+    "TimeConfirmations": []
+  },
+  "allWorkOrders": [
+    {
+      "OrderHeader": {
+        "order_id": "WO-2002",
+        "description": "Fix conveyor belt alignment",
+        "status": {
+          "system_status": [
+            "REL",
+            "PCNF"
+          ],
+          "user_status": [
+            "IN_PROCESS"
+          ]
+        },
+        "assigned_to": "TECH001",
+        "created_on": "2026-05-09T00:00:00.000Z",
+        "due_date": "2026-05-30T12:00:00.000Z",
+        "last_changed": "2026-05-19T15:48:54.388Z"
+      },
+      "Operations": [
+        {
+          "operation_id": "OP-A",
+          "description": "Inspect belt",
+          "status": "closed",
+          "planned_duration_minutes": 40,
+          "actual_duration_minutes": 40,
+          "is_confirmed": true,
+          "started_at": "2026-05-09T08:00:00.000Z",
+          "completed_at": "2026-05-09T08:40:00.000Z"
+        },
+        {
+          "operation_id": "OP-B",
+          "description": "Adjust rollers",
+          "status": "closed",
+          "planned_duration_minutes": 35,
+          "actual_duration_minutes": 0,
+          "is_confirmed": true,
+          "started_at": "2026-05-19T15:48:54.388Z",
+          "completed_at": "2026-05-19T15:48:54.388Z"
+        }
+      ],
+      "Totals": {
+        "total_planned_time_minutes": 75,
+        "total_actual_time_minutes": 40
+      },
+      "TimeConfirmations": []
+    }
+  ]
+}

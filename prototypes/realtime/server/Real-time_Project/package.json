@@ -7,13 +7,15 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "analyze:kpis": "node experiment/analyzeKpis.js",
+    "analyze:kpis": "node experiment/experiment_2/analyzeKpis.js",
+    "analyze:experiment1": "node experiment/experiment_1/analyzeKpis.js",
+    "analyze:experiment2": "node experiment/experiment_2/analyzeKpis.js",
     "experiment:plan": "node ../../../../shared/scripts/experimentHarness.mjs plan --config ../../../../shared/experiments/voice-stimuli-2026.json",
     "experiment:preflight": "node ../../../../shared/scripts/experimentHarness.mjs preflight --config ../../../../shared/experiments/voice-stimuli-2026.json",
     "experiment:noise": "swift ../../../../shared/scripts/noisePlayback.swift ../../../../shared/experiments/voice-stimuli-2026.json",
     "experiment:play-command": "node ../../../../shared/scripts/experimentHarness.mjs play-command --config ../../../../shared/experiments/voice-stimuli-2026.json",
     "experiment:play-confirmation": "node ../../../../shared/scripts/experimentHarness.mjs play-confirmation --config ../../../../shared/experiments/voice-stimuli-2026.json",
-    "experiment:validate": "node ../../../../shared/scripts/experimentHarness.mjs validate --config ../../../../shared/experiments/voice-stimuli-2026.json --prototype realtime --experiment-root experiment"
+    "experiment:validate": "node ../../../../shared/scripts/experimentHarness.mjs validate --config ../../../../shared/experiments/voice-stimuli-2026.json --run-id B --prototype realtime --experiment-root experiment/experiment_2"
   },
   "dependencies": {
     "cors": "^2.8.5",

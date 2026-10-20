@@ -94,7 +94,7 @@ async function waitForEvent(eventsPath, trialId, eventType, timeoutMs, afterTime
 
 function deviceCommand(options, action) {
   const device = required(options, "device");
-  const bundle = options.bundle || "-bm.ResearchProject2025";
+  const bundle = options.bundle || "com.kristianguenov.VUIASRTTS";
   const scheme = options.scheme || "vui-asr";
   const result = spawnSync("xcrun", [
     "devicectl", "device", "process", "launch", "--device", device,

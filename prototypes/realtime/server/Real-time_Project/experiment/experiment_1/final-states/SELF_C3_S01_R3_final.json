@@ -1,0 +1,148 @@
+{
+  "trial": {
+    "trialId": "SELF_C3_S01_R3",
+    "condition": "C3",
+    "prototype": "realtime",
+    "environment": "quiet",
+    "scenarioId": "S01",
+    "repetition": 3,
+    "status": "running",
+    "workOrderId": "WO-1001",
+    "serverAudioStartedAt": "2026-05-19T15:43:53.239Z",
+    "finalAcknowledgementAt": null
+  },
+  "workOrder": {
+    "OrderHeader": {
+      "order_id": "WO-1001",
+      "description": "Replace filter on air unit",
+      "status": {
+        "system_status": [
+          "REL",
+          "PCNF"
+        ],
+        "user_status": [
+          "IN_PROCESS"
+        ]
+      },
+      "assigned_to": "TECH001",
+      "created_on": "2026-05-09T00:00:00.000Z",
+      "due_date": "2026-05-30T12:00:00.000Z",
+      "last_changed": "2026-05-19T15:44:17.548Z"
+    },
+    "Operations": [
+      {
+        "operation_id": "OP-1",
+        "description": "Remove old filter",
+        "status": "closed",
+        "planned_duration_minutes": 30,
+        "actual_duration_minutes": 55,
+        "is_confirmed": true,
+        "started_at": "2026-05-09T08:00:00.000Z",
+        "completed_at": "2026-05-09T08:55:00.000Z"
+      },
+      {
+        "operation_id": "OP-2",
+        "description": "Install new filter",
+        "status": "open",
+        "planned_duration_minutes": 25,
+        "actual_duration_minutes": 0,
+        "is_confirmed": false,
+        "started_at": null,
+        "completed_at": null
+      }
+    ],
+    "Totals": {
+      "total_planned_time_minutes": 55,
+      "total_actual_time_minutes": 77
+    },
+    "TimeConfirmations": [
+      {
+        "confirmation_id": "C-WO1001-001",
+        "operation_id": "OP-1",
+        "technician_id": "TECH001",
+        "start_time": "2026-05-09T08:00:00.000Z",
+        "end_time": "2026-05-09T08:55:00.000Z",
+        "duration_minutes": 55,
+        "final_confirmation": true
+      },
+      {
+        "confirmation_id": "WO-1779205457547",
+        "operation_id": null,
+        "technician_id": "TECH001",
+        "start_time": null,
+        "end_time": null,
+        "duration_minutes": 22,
+        "final_confirmation": false,
+        "level": "ORDER"
+      }
+    ]
+  },
+  "allWorkOrders": [
+    {
+      "OrderHeader": {
+        "order_id": "WO-1001",
+        "description": "Replace filter on air unit",
+        "status": {
+          "system_status": [
+            "REL",
+            "PCNF"
+          ],
+          "user_status": [
+            "IN_PROCESS"
+          ]
+        },
+        "assigned_to": "TECH001",
+        "created_on": "2026-05-09T00:00:00.000Z",
+        "due_date": "2026-05-30T12:00:00.000Z",
+        "last_changed": "2026-05-19T15:44:17.548Z"
+      },
+      "Operations": [
+        {
+          "operation_id": "OP-1",
+          "description": "Remove old filter",
+          "status": "closed",
+          "planned_duration_minutes": 30,
+          "actual_duration_minutes": 55,
+          "is_confirmed": true,
+          "started_at": "2026-05-09T08:00:00.000Z",
+          "completed_at": "2026-05-09T08:55:00.000Z"
+        },
+        {
+          "operation_id": "OP-2",
+          "description": "Install new filter",
+          "status": "open",
+          "planned_duration_minutes": 25,
+          "actual_duration_minutes": 0,
+          "is_confirmed": false,
+          "started_at": null,
+          "completed_at": null
+        }
+      ],
+      "Totals": {
+        "total_planned_time_minutes": 55,
+        "total_actual_time_minutes": 77
+      },
+      "TimeConfirmations": [
+        {
+          "confirmation_id": "C-WO1001-001",
+          "operation_id": "OP-1",
+          "technician_id": "TECH001",
+          "start_time": "2026-05-09T08:00:00.000Z",
+          "end_time": "2026-05-09T08:55:00.000Z",
+          "duration_minutes": 55,
+          "final_confirmation": true
+        },
+        {
+          "confirmation_id": "WO-1779205457547",
+          "operation_id": null,
+          "technician_id": "TECH001",
+          "start_time": null,
+          "end_time": null,
+          "duration_minutes": 22,
+          "final_confirmation": false,
+          "level": "ORDER"
+        }
+      ]
+    }
+  ]
+}

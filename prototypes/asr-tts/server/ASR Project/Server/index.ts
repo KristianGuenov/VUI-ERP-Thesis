@@ -13,6 +13,19 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 app.use(express.json());
 
+// Experiment controls change the recorded run or reset its work-order state.
+app.use(
+  ["/experiment/start-trial", "/experiment/end-trial", "/experiment/fail-trial", "/experiment/reset"],
+  (req, res, next) => {
+    const token = process.env.EXPERIMENT_ADMIN_TOKEN;
+    if (!token) return res.status(503).json({ error: "EXPERIMENT_ADMIN_TOKEN is not configured" });
+    if (req.get("Authorization") !== `Bearer ${token}`) {
+      return res.status(403).json({ error: "Experiment admin token required" });
+    }
+    next();
+  }
+);
+
 // ===============================================================
 // Types
 // ===============================================================

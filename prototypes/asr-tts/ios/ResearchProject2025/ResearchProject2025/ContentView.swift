@@ -42,7 +42,7 @@ struct ContentView: View {
     @State private var chatHistory: [ChatMessage] = []
 
     private let recorder = AudioRecorder()
-    @State private var serverURLString: String = "http://10.4.4.112:3000"
+    @AppStorage("serverURLString") private var serverURLString: String = "http://localhost:3000"
 
     private let historyKey = "VoiceWOChatHistory"
 
@@ -60,6 +60,13 @@ struct ContentView: View {
                     Text("Voice Work Orders")
                         .font(.headline)
                         .foregroundColor(.secondary)
+
+                    TextField("Server URL", text: $serverURLString)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                        .textFieldStyle(.roundedBorder)
+                        .padding(.horizontal)
 
                     // Chat history
                     if !chatHistory.isEmpty {

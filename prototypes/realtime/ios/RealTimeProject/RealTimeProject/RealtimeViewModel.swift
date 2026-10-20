@@ -16,7 +16,9 @@ final class VoiceChatViewModel: ObservableObject {
     private let playbackEngine = AVAudioEngine()
     private var playbackPlayer = AVAudioPlayerNode()
 
-    private let server = "http://10.4.4.112:3000"
+    @Published var server = UserDefaults.standard.string(forKey: "serverURLString") ?? "http://localhost:3000" {
+        didSet { UserDefaults.standard.set(server, forKey: "serverURLString") }
+    }
 
     // MARK: - Published state for UI
     @Published var isAIPlaying: Bool = false

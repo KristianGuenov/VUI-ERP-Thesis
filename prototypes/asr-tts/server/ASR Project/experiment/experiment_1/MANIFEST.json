@@ -1,0 +1,14 @@
+{
+  "experiment": 1,
+  "prototype": "asr_tts",
+  "conditions": {
+    "C1": 30,
+    "C2": 30
+  },
+  "trials": 60,
+  "finalStateSnapshots": 58,
+  "missingFinalStateSnapshots": [
+    "SELF_C1_S01_R2",
+    "SELF_C2_S10_R2"
+  ]
+}

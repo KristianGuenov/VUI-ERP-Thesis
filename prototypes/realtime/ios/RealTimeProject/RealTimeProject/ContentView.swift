@@ -25,6 +25,13 @@ struct ContentView: View {
                 .padding(.horizontal)
                 .padding(.top, 16)
 
+                TextField("Server URL", text: $viewModel.server)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
+                    .textFieldStyle(.roundedBorder)
+                    .padding(.horizontal)
+
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Assistant")
                         .font(.headline)

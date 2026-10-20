@@ -4,7 +4,6 @@
 
 import express from "express";
 import WebSocket from "ws";
-import cors from "cors";
 import events from "events";
 import "dotenv/config";
 
@@ -24,8 +23,20 @@ import path from "path";
 events.EventEmitter.defaultMaxListeners = 25;
 
 const app = express();
-app.use(cors());
 app.use(express.json({ limit: "10mb" }));
+
+// Experiment controls change the recorded run or reset its work-order state.
+app.use(
+  ["/experiment/start-trial", "/experiment/end-trial", "/experiment/fail-trial", "/experiment/reset"],
+  (req, res, next) => {
+    const token = process.env.EXPERIMENT_ADMIN_TOKEN;
+    if (!token) return res.status(503).json({ error: "EXPERIMENT_ADMIN_TOKEN is not configured" });
+    if (req.get("Authorization") !== `Bearer ${token}`) {
+      return res.status(403).json({ error: "Experiment admin token required" });
+    }
+    next();
+  }
+);
 
 const REALTIME_MODEL = process.env.OPENAI_REALTIME_MODEL || "gpt-realtime";
 const REALTIME_VOICE = process.env.OPENAI_REALTIME_VOICE || "alloy";
@@ -1420,11 +1431,6 @@ app.get("/workorder/:id", (req, res) => {
   const wo = getWorkOrder(req.params.id);
   if (!wo) return res.status(404).json({ error: "Work order not found" });
   res.json(wo);
-});
-
-app.get("/debug/reset", (req, res) => {
-  resetWorkOrders();
-  res.json({ status: "reset" });
 });
 
 app.get("/debug/realtime", (req, res) => {

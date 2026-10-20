@@ -1,13 +1,16 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
-const ROOT = process.cwd();
+// This analyzer is archived with the dataset, so resolve data paths relative to
+// the analyzer itself instead of whichever directory happens to invoke it.
+const EXPERIMENT_DIR = path.dirname(fileURLToPath(import.meta.url));
 
-const LOG_PATH = path.join(ROOT, "experiment", "logs", "events.jsonl");
-const SCENARIO_PATH = path.join(ROOT, "experiment", "scenarios", "common_scenarios.json");
-const FINAL_STATES_DIR = path.join(ROOT, "experiment", "final-states");
-const RESULTS_DIR = path.join(ROOT, "experiment", "results");
-const MANUAL_REVIEW_DIR = path.join(ROOT, "experiment", "manual-review");
+const LOG_PATH = path.join(EXPERIMENT_DIR, "logs", "events.jsonl");
+const SCENARIO_PATH = path.join(EXPERIMENT_DIR, "scenarios", "common_scenarios.json");
+const FINAL_STATES_DIR = path.join(EXPERIMENT_DIR, "final-states");
+const RESULTS_DIR = path.join(EXPERIMENT_DIR, "results");
+const MANUAL_REVIEW_DIR = path.join(EXPERIMENT_DIR, "manual-review");
 
 const SENSITIVE_TOOLS = new Set([
   "report_time",
@@ -326,6 +329,31 @@ function evaluateFailure(events) {
   return failed || fatalObserved || !completed;
 }
 
+function hasSuccessfulReadOnlyRetrieval(scenario, events) {
+  const expectedOperations = (scenario.allowedOperations || [])
+    .map(normalizeExpectedOperation)
+    .filter(Boolean);
+
+  if (!expectedOperations.length || !expectedOperations.every((operation) => operation.toolName?.startsWith("get_"))) {
+    return false;
+  }
+
+  const expectedOrderIds = new Set(
+    expectedOperations
+      .map((operation) => operation.args?.order_id)
+      .filter(Boolean)
+      .map((value) => String(value).trim().toLowerCase())
+  );
+
+  return events.some((event) => {
+    if (event.eventType !== "tool_call_result" || event.ok !== true || event.mutated === true) return false;
+    if (!String(event.toolName || "").startsWith("get_")) return false;
+
+    const orderId = event.args?.order_id;
+    return expectedOrderIds.size === 0 || expectedOrderIds.has(String(orderId || "").trim().toLowerCase());
+  });
+}
+
 function evaluateTrial(trialId, events, scenarioMap) {
   const start = events.find((event) => event.eventType === "trial_started") || events[0];
   const scenario = scenarioMap.get(start.scenarioId);
@@ -353,7 +381,7 @@ function evaluateTrial(trialId, events, scenarioMap) {
           ["tool_call_requested", "tool_call_result", "operation_executed"].includes(event.eventType) &&
           operationMatches(event, operation)
         )
-      );
+      ) || hasSuccessfulReadOnlyRetrieval(scenario, events);
 
   const taskSuccess =
     !failureObserved &&

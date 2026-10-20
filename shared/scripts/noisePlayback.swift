@@ -26,7 +26,7 @@ guard
     let root = try? JSONSerialization.jsonObject(with: configData) as? [String: Any],
     let playback = root["playback"] as? [String: Any],
     let noise = root["noise"] as? [String: Any],
-    let localFile = noise["localFile"] as? String,
+    let configuredLocalFile = noise["localFile"] as? String,
     let playbackVolume = noise["playbackVolume"] as? Double,
     let noiseSha256 = noise["sha256"] as? String,
     let statusFile = noise["statusFile"] as? String,
@@ -35,6 +35,12 @@ guard
 else {
     fail("Noise playback settings are missing or invalid in \(configURL.path)")
 }
+
+let localFile = configuredLocalFile.hasPrefix("/")
+    ? configuredLocalFile
+    : configURL.deletingLastPathComponent()
+        .appendingPathComponent(configuredLocalFile)
+        .standardizedFileURL.path
 
 guard FileManager.default.fileExists(atPath: localFile) else {
     fail("Industrial-noise file is missing: \(localFile)")

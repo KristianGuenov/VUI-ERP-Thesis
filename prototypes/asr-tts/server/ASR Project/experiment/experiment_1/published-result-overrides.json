@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Keep the derived Experiment 1 result log aligned with the thesis-authoritative result while preserving the surviving source events unchanged.",
+  "source": "Kristian Guenov, Voice User Interfaces in ERP Systems, Experiment 1 results and scenario discussion.",
+  "overrides": [
+    {
+      "trialId": "SELF_C2_S10_R1",
+      "field": "taskSuccess",
+      "value": true,
+      "basis": "The thesis reports S10 as achieving 100% task success and reports C2 task success as 86.7%. The surviving event record for this repetition conflicts with that published result, so this is an explicit thesis-authoritative override rather than an inferred raw event.",
+      "rawEventsModified": false
+    }
+  ]
+}

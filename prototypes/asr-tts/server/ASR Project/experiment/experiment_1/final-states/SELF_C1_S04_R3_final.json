@@ -1,0 +1,87 @@
+{
+  "trial": {
+    "trialId": "SELF_C1_S04_R3",
+    "condition": "C1",
+    "prototype": "asr_tts",
+    "environment": "quiet",
+    "scenarioId": "S04",
+    "repetition": 3,
+    "status": "running",
+    "workOrderId": "WO-2002",
+    "serverAudioStartedAt": "2026-05-15T14:29:43.305Z",
+    "finalAcknowledgementAt": null
+  },
+  "workOrder": {
+    "id": "WO-2002",
+    "status": "in_progress",
+    "description": "Fix conveyor belt alignment",
+    "timeReported": 40,
+    "operations": [
+      {
+        "id": "OP-A",
+        "description": "Inspect belt",
+        "status": "closed"
+      },
+      {
+        "id": "OP-B",
+        "description": "Adjust rollers",
+        "status": "closed"
+      }
+    ],
+    "notes": []
+  },
+  "allWorkOrders": [
+    {
+      "id": "WO-1001",
+      "status": "in_progress",
+      "description": "Replace filter on air unit",
+      "timeReported": 55,
+      "operations": [
+        {
+          "id": "OP-1",
+          "description": "Remove old filter",
+          "status": "closed"
+        },
+        {
+          "id": "OP-2",
+          "description": "Install new filter",
+          "status": "open"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": "WO-2002",
+      "status": "in_progress",
+      "description": "Fix conveyor belt alignment",
+      "timeReported": 40,
+      "operations": [
+        {
+          "id": "OP-A",
+          "description": "Inspect belt",
+          "status": "closed"
+        },
+        {
+          "id": "OP-B",
+          "description": "Adjust rollers",
+          "status": "closed"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": "WO-3003",
+      "status": "open",
+      "description": "remove filter.",
+      "timeReported": 0,
+      "operations": [
+        {
+          "id": "OP-11",
+          "description": "Run diagnostics",
+          "status": "open"
+        }
+      ],
+      "notes": []
+    }
+  ]
+}

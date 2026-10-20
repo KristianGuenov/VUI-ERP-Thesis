@@ -1,0 +1,12 @@
+{
+  "experiment": 2,
+  "prototype": "realtime",
+  "conditions": {
+    "C3": 36,
+    "C4": 36
+  },
+  "trials": 72,
+  "finalStateSnapshots": 72,
+  "voiceProfiles": 3,
+  "scenarios": 4
+}

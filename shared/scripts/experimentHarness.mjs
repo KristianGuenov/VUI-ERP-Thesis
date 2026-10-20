@@ -294,9 +294,13 @@ function preflight(config, trials, options) {
 }
 
 async function postJson(server, route, body = {}) {
+  const adminToken = process.env.EXPERIMENT_ADMIN_TOKEN;
   const response = await fetch(`${server.replace(/\/$/, "")}${route}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {})
+    },
     body: JSON.stringify(body)
   });
   const text = await response.text();
@@ -439,8 +443,14 @@ function validateRun(config, trials, options) {
       const received = trialEvents.find((event) => event.eventType === "confirmation_received");
       const executed = trialEvents.find((event) => event.eventType === "operation_executed");
       if (!prompted || !received || !executed) {
-        const confirmationTarget = failures === 1 ? warnings : issues;
-        confirmationTarget.push(`${trial.trialId}: incomplete confirmation/execution sequence`);
+        const observedFailure = trialEvents.some((event) =>
+          event.eventType === "trial_failure_observed"
+        );
+        const confirmationTarget = failures === 1 || observedFailure ? warnings : issues;
+        confirmationTarget.push(
+          `${trial.trialId}: incomplete confirmation/execution sequence` +
+          (observedFailure ? " (recorded unsuccessful trial)" : "")
+        );
       } else if (!(prompted.timestamp <= received.timestamp && received.timestamp <= executed.timestamp)) {
         issues.push(`${trial.trialId}: confirmation events are out of order`);
       }
@@ -513,6 +523,9 @@ async function main() {
 
   const configPath = resolveConfig(options);
   const config = readJson(configPath);
+  if (config.noise?.localFile && !path.isAbsolute(config.noise.localFile)) {
+    config.noise.localFile = path.resolve(path.dirname(configPath), config.noise.localFile);
+  }
   const trials = expandPlan(config, options["run-id"]);
   assertPlanShape(config, trials);
 

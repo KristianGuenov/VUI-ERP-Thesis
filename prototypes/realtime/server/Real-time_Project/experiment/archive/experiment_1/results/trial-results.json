@@ -13,7 +13,14 @@
     "latencyMs": 30638,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S01_R2",
@@ -29,7 +36,14 @@
     "latencyMs": 46493,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S01_R3",
@@ -51,7 +65,14 @@
         "expected": 75,
         "actual": 77
       }
-    ]
+    ],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S02_R1",
@@ -67,7 +88,14 @@
     "latencyMs": 59799,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S02_R2",
@@ -83,7 +111,14 @@
     "latencyMs": 24415,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S02_R3",
@@ -99,7 +134,14 @@
     "latencyMs": 26021,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S03_R1",
@@ -115,7 +157,14 @@
     "latencyMs": 26291,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S03_R2",
@@ -131,7 +180,14 @@
     "latencyMs": 27567,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S03_R3",
@@ -153,7 +209,14 @@
         "expected": "closed",
         "actual": "open"
       }
-    ]
+    ],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S04_R1",
@@ -169,7 +232,14 @@
     "latencyMs": 58688,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S04_R2",
@@ -185,7 +255,14 @@
     "latencyMs": 32084,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S04_R3",
@@ -201,7 +278,14 @@
     "latencyMs": 39209,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S05_R1",
@@ -223,7 +307,14 @@
         "expected": "closed",
         "actual": "open"
       }
-    ]
+    ],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S05_R2",
@@ -245,7 +336,14 @@
         "expected": "closed",
         "actual": "open"
       }
-    ]
+    ],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S05_R3",
@@ -261,7 +359,14 @@
     "latencyMs": 35353,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S06_R1",
@@ -277,7 +382,14 @@
     "latencyMs": 1201,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S06_R2",
@@ -293,7 +405,14 @@
     "latencyMs": 1032,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S06_R3",
@@ -309,7 +428,14 @@
     "latencyMs": 1163,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S07_R1",
@@ -325,7 +451,14 @@
     "latencyMs": 20434,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S07_R2",
@@ -341,7 +474,14 @@
     "latencyMs": 37530,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S07_R3",
@@ -357,7 +497,14 @@
     "latencyMs": 35309,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S08_R1",
@@ -373,7 +520,14 @@
     "latencyMs": 1207,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S08_R2",
@@ -389,7 +543,14 @@
     "latencyMs": 20835,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S08_R3",
@@ -405,7 +566,14 @@
     "latencyMs": 1230,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S09_R1",
@@ -414,14 +582,21 @@
     "environment": "quiet",
     "scenarioId": "S09",
     "repetition": 1,
-    "taskSuccess": false,
+    "taskSuccess": true,
     "criticalExecutionError": false,
     "criticalExecutionErrorReason": "",
     "entityAccuracy": null,
     "latencyMs": 1134,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S09_R2",
@@ -430,14 +605,21 @@
     "environment": "quiet",
     "scenarioId": "S09",
     "repetition": 2,
-    "taskSuccess": false,
+    "taskSuccess": true,
     "criticalExecutionError": false,
     "criticalExecutionErrorReason": "",
     "entityAccuracy": null,
     "latencyMs": 1124,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S09_R3",
@@ -446,14 +628,21 @@
     "environment": "quiet",
     "scenarioId": "S09",
     "repetition": 3,
-    "taskSuccess": false,
+    "taskSuccess": true,
     "criticalExecutionError": false,
     "criticalExecutionErrorReason": "",
     "entityAccuracy": null,
     "latencyMs": 1207,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S10_R1",
@@ -469,7 +658,14 @@
     "latencyMs": 1252,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S10_R2",
@@ -485,7 +681,14 @@
     "latencyMs": 1307,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C3_S10_R3",
@@ -501,7 +704,14 @@
     "latencyMs": 1213,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S01_R1",
@@ -517,7 +727,14 @@
     "latencyMs": 29174,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S01_R2",
@@ -533,7 +750,14 @@
     "latencyMs": 23942,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S01_R3",
@@ -549,7 +773,14 @@
     "latencyMs": 48716,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S02_R1",
@@ -565,7 +796,14 @@
     "latencyMs": 45530,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S02_R2",
@@ -581,7 +819,14 @@
     "latencyMs": 24354,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S02_R3",
@@ -597,7 +842,14 @@
     "latencyMs": 41599,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S03_R1",
@@ -613,7 +865,14 @@
     "latencyMs": 33283,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S03_R2",
@@ -629,7 +888,14 @@
     "latencyMs": 28165,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S03_R3",
@@ -645,7 +911,14 @@
     "latencyMs": 27237,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S04_R1",
@@ -661,7 +934,14 @@
     "latencyMs": 36967,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S04_R2",
@@ -677,7 +957,14 @@
     "latencyMs": 30291,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S04_R3",
@@ -699,7 +986,14 @@
         "expected": "closed",
         "actual": "open"
       }
-    ]
+    ],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S05_R1",
@@ -715,7 +1009,14 @@
     "latencyMs": 31515,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S05_R2",
@@ -731,7 +1032,14 @@
     "latencyMs": 38548,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S05_R3",
@@ -747,7 +1055,14 @@
     "latencyMs": 24919,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S06_R1",
@@ -763,7 +1078,14 @@
     "latencyMs": 1111,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S06_R2",
@@ -779,7 +1101,14 @@
     "latencyMs": 1423,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S06_R3",
@@ -795,7 +1124,14 @@
     "latencyMs": 1888,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S07_R1",
@@ -811,7 +1147,14 @@
     "latencyMs": 24741,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S07_R2",
@@ -827,7 +1170,14 @@
     "latencyMs": 35549,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S07_R3",
@@ -843,7 +1193,14 @@
     "latencyMs": 38282,
     "failureTimeout": false,
     "confirmationCompliance": true,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S08_R1",
@@ -859,7 +1216,14 @@
     "latencyMs": 1339,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S08_R2",
@@ -875,7 +1239,14 @@
     "latencyMs": 1607,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S08_R3",
@@ -891,7 +1262,14 @@
     "latencyMs": 1229,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S09_R1",
@@ -900,14 +1278,21 @@
     "environment": "industrial_noise",
     "scenarioId": "S09",
     "repetition": 1,
-    "taskSuccess": false,
+    "taskSuccess": true,
     "criticalExecutionError": false,
     "criticalExecutionErrorReason": "",
     "entityAccuracy": null,
     "latencyMs": 1029,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S09_R2",
@@ -916,14 +1301,21 @@
     "environment": "industrial_noise",
     "scenarioId": "S09",
     "repetition": 2,
-    "taskSuccess": false,
+    "taskSuccess": true,
     "criticalExecutionError": false,
     "criticalExecutionErrorReason": "",
     "entityAccuracy": null,
     "latencyMs": 1294,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S09_R3",
@@ -932,14 +1324,21 @@
     "environment": "industrial_noise",
     "scenarioId": "S09",
     "repetition": 3,
-    "taskSuccess": false,
+    "taskSuccess": true,
     "criticalExecutionError": false,
     "criticalExecutionErrorReason": "",
     "entityAccuracy": null,
     "latencyMs": 1238,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S10_R1",
@@ -955,7 +1354,14 @@
     "latencyMs": 1381,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S10_R2",
@@ -971,7 +1377,14 @@
     "latencyMs": 1363,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   },
   {
     "trialId": "SELF_C4_S10_R3",
@@ -987,6 +1400,13 @@
     "latencyMs": 1332,
     "failureTimeout": false,
     "confirmationCompliance": null,
-    "failedChecks": []
+    "failedChecks": [],
+    "experimentId": null,
+    "stimulusVoice": null,
+    "stimulusFile": null,
+    "confirmationStimulusFile": null,
+    "noiseSource": null,
+    "noiseLevelDb": null,
+    "runSequence": null
   }
 ]
